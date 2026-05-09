@@ -1,6 +1,7 @@
-# spring-boot-devcontainer
+# baseball-market-spring
 
-DevcontainerでSpring Bootの開発環境を構築するためのリポジトリ
+野球グッズマーケット（旧 baseball-market / PHP 版）を Spring Boot でフルリプレースするリポジトリ。
+Devcontainer により Spring Boot の開発環境を構築する。
 
 ## 環境構成
 - Java 21 (Bullseye)
