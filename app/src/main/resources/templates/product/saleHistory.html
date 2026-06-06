@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title th:text="|${siteTitle}｜ BASEBALL MARKET|">販売履歴</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Noto Sans JP', sans-serif;">
+<header th:replace="~{shared/layout :: header}"></header>
+
+<main class="max-w-4xl mx-auto px-6 py-8">
+  <a th:href="@{/mypage}" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 text-sm">
+    <i class="ri-arrow-left-line"></i>マイページに戻る
+  </a>
+
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">販売履歴</h1>
+
+  <div th:if="${#lists.isEmpty(items)}" class="text-center py-16 text-gray-500">
+    販売履歴はまだありません
+  </div>
+
+  <ul class="space-y-3">
+    <li th:each="i : ${items}" class="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+      <div class="w-20 h-20 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+        <img th:if="${i.pic1 != null and !#strings.isEmpty(i.pic1)}" th:src="@{'/' + ${i.pic1}}"
+             class="w-full h-full object-cover">
+      </div>
+      <div class="flex-1">
+        <p class="font-semibold text-gray-900" th:text="${i.productName}"></p>
+        <p class="text-red-600 font-bold text-sm" th:text="|¥${#numbers.formatInteger(i.price, 1, 'COMMA')}|"></p>
+        <p class="text-xs text-gray-500" th:text="|購入者: ${i.buyerName ?: '名前無し'} / 売却日時: ${#temporals.format(i.soldAt, 'yyyy-MM-dd HH:mm')}|"></p>
+      </div>
+    </li>
+  </ul>
+</main>
+
+<footer th:replace="~{shared/layout :: footer}"></footer>
+</body>
+</html>

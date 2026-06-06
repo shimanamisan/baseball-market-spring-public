@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title th:text="|${siteTitle}｜ BASEBALL MARKET|">プロフィール編集</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Noto Sans JP', sans-serif;">
+<header th:replace="~{shared/layout :: header}"></header>
+
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-2xl mx-auto px-6">
+    <a th:href="@{/mypage}" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-semibold text-sm">
+      <i class="ri-arrow-left-line"></i>マイページに戻る
+    </a>
+
+    <div class="bg-white rounded-2xl shadow-lg p-8">
+      <h1 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <i class="ri-user-settings-line text-red-600"></i>プロフィール編集
+      </h1>
+
+      <div th:if="${errors['common']}" class="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+        <p class="text-red-800 text-sm font-medium" th:text="${errors['common']}"></p>
+      </div>
+
+      <form th:action="@{/profEdit}" th:object="${form}" method="post" enctype="multipart/form-data" class="space-y-5">
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">メールアドレス <span class="text-red-600">*</span></label>
+          <p th:if="${errors['email']}" class="text-red-600 text-xs mb-1" th:text="${errors['email']}"></p>
+          <input type="text" th:field="*{email}" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">ユーザー名</label>
+          <p th:if="${errors['username']}" class="text-red-600 text-xs mb-1" th:text="${errors['username']}"></p>
+          <input type="text" th:field="*{username}" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">プロフィール画像</label>
+          <p th:if="${errors['pic']}" class="text-red-600 text-xs mb-1" th:text="${errors['pic']}"></p>
+          <div th:if="${currentPic}" class="mb-2">
+            <img th:src="@{'/' + ${currentPic}}" alt="現在の画像" class="w-24 h-24 object-cover rounded">
+          </div>
+          <input type="file" name="pic" accept="image/jpeg,image/png,image/gif" class="text-sm">
+          <p class="text-xs text-gray-500 mt-1">JPEG/PNG/GIF、3MB 以内</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">年齢</label>
+            <p th:if="${errors['age']}" class="text-red-600 text-xs mb-1" th:text="${errors['age']}"></p>
+            <input type="number" th:field="*{age}" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">電話番号</label>
+            <p th:if="${errors['tel']}" class="text-red-600 text-xs mb-1" th:text="${errors['tel']}"></p>
+            <input type="text" th:field="*{tel}" placeholder="09012345678" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">郵便番号</label>
+            <p th:if="${errors['zip']}" class="text-red-600 text-xs mb-1" th:text="${errors['zip']}"></p>
+            <input type="text" th:field="*{zip}" placeholder="1234567" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-900 mb-2">都道府県</label>
+            <p th:if="${errors['prefecture']}" class="text-red-600 text-xs mb-1" th:text="${errors['prefecture']}"></p>
+            <input type="text" th:field="*{prefecture}" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">市区町村</label>
+          <p th:if="${errors['city']}" class="text-red-600 text-xs mb-1" th:text="${errors['city']}"></p>
+          <input type="text" th:field="*{city}" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">番地</label>
+          <p th:if="${errors['street']}" class="text-red-600 text-xs mb-1" th:text="${errors['street']}"></p>
+          <input type="text" th:field="*{street}" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">建物名</label>
+          <p th:if="${errors['building']}" class="text-red-600 text-xs mb-1" th:text="${errors['building']}"></p>
+          <input type="text" th:field="*{building}" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm">
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl">保存する</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{shared/layout :: footer}"></footer>
+</body>
+</html>

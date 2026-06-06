@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title th:text="|${siteTitle}｜ BASEBALL MARKET|">退会</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Noto Sans JP', sans-serif;">
+<header th:replace="~{shared/layout :: header}"></header>
+
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-lg mx-auto px-6">
+    <a th:href="@{/mypage}" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-semibold text-sm">
+      <i class="ri-arrow-left-line"></i>マイページに戻る
+    </a>
+
+    <div class="bg-white rounded-2xl shadow-lg p-8">
+      <h1 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <i class="ri-user-unfollow-line text-red-600"></i>退会手続き
+      </h1>
+
+      <div th:if="${errorMessage}" class="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+        <p class="text-red-800 text-sm font-medium" th:text="${errorMessage}"></p>
+      </div>
+
+      <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-6">
+        <p class="text-yellow-800 text-sm">
+          退会すると以下のデータが利用できなくなります。
+        </p>
+        <ul class="list-disc list-inside text-sm text-yellow-800 mt-2">
+          <li>出品中の商品</li>
+          <li>お気に入り登録</li>
+          <li>メッセージ履歴</li>
+        </ul>
+        <p class="text-yellow-800 text-sm mt-3">本当に退会してよろしいですか？</p>
+      </div>
+
+      <form th:action="@{/withdraw}" method="post" onsubmit="return confirm('本当に退会してよろしいですか？')">
+        <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl">
+          退会する
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{shared/layout :: footer}"></footer>
+</body>
+</html>
