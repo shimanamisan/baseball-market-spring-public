@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title th:text="|${siteTitle}｜ BASEBALL MARKET|">パスワード変更</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Noto Sans JP', sans-serif;">
+<header th:replace="~{shared/layout :: header}"></header>
+
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-lg mx-auto px-6">
+    <a th:href="@{/mypage}" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 font-semibold text-sm">
+      <i class="ri-arrow-left-line"></i>マイページに戻る
+    </a>
+
+    <div class="bg-white rounded-2xl shadow-lg p-8">
+      <h1 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <i class="ri-lock-line text-red-600"></i>パスワード変更
+      </h1>
+
+      <div th:if="${errors['common']}" class="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+        <p class="text-red-800 text-sm font-medium" th:text="${errors['common']}"></p>
+      </div>
+
+      <form th:action="@{/passEdit}" th:object="${form}" method="post" class="space-y-6">
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">現在のパスワード</label>
+          <p th:if="${errors['passOld']}" class="text-red-600 text-xs mb-1" th:text="${errors['passOld']}"></p>
+          <input type="password" th:field="*{passOld}" autocomplete="current-password"
+                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-600 focus:outline-none text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">新しいパスワード</label>
+          <p th:if="${errors['passNew']}" class="text-red-600 text-xs mb-1" th:text="${errors['passNew']}"></p>
+          <input type="password" th:field="*{passNew}" autocomplete="new-password"
+                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-600 focus:outline-none text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-900 mb-2">新しいパスワード（確認）</label>
+          <p th:if="${errors['passNewRe']}" class="text-red-600 text-xs mb-1" th:text="${errors['passNewRe']}"></p>
+          <input type="password" th:field="*{passNewRe}" autocomplete="new-password"
+                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-600 focus:outline-none text-sm">
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl">変更する</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer th:replace="~{shared/layout :: footer}"></footer>
+</body>
+</html>

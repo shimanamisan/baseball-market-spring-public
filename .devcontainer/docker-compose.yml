@@ -1,36 +1,47 @@
 volumes:
   db-store:
-    name: spring-boot-mysql-data
+    name: baseball-market-spring-db-store
+
+networks:
+  nginx-proxy-manager-network:
+    external: true
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: java-app
+    container_name: baseball-market-spring-app
     ports:
       - "8080:8080"
     volumes:
       - ../:/app
     depends_on:
       - db
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/springdb
-      - SPRING_DATASOURCE_USERNAME=springuser
-      - SPRING_DATASOURCE_PASSWORD=password
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - mailhog
+    networks:
+      - nginx-proxy-manager-network
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: baseball-market-spring-mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - nginx-proxy-manager-network
 
   db:
     image: mysql:8.0
-    container_name: mysql-db
-    ports:
-      - "3306:3306"
+    container_name: baseball-market-spring-db
     environment:
-      - MYSQL_DATABASE=springdb
-      - MYSQL_USER=springuser
+      - MYSQL_DATABASE=bb_market
+      - MYSQL_USER=bbuser
       - MYSQL_PASSWORD=password
       - MYSQL_ROOT_PASSWORD=rootpassword
+      - TZ=Asia/Tokyo
     volumes:
       - db-store:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
-
+    networks:
+      - nginx-proxy-manager-network

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title th:text="|${siteTitle}｜ BASEBALL MARKET|">商品登録</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'Noto Sans JP', sans-serif;">
+<header th:replace="~{shared/layout :: header}"></header>
+
+<main class="max-w-2xl mx-auto px-6 py-8">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+    <i class="ri-add-line text-red-600"></i>商品を出品する
+  </h1>
+
+  <div th:if="${errors['common']}" class="p-4 bg-red-50 border border-red-200 rounded-lg mb-6">
+    <p class="text-red-800 text-sm font-medium" th:text="${errors['common']}"></p>
+  </div>
+
+  <form th:action="@{/registProduct}" th:object="${form}" method="post" enctype="multipart/form-data" class="bg-white p-6 rounded-2xl shadow space-y-5">
+    <div>
+      <label class="block text-sm font-semibold text-gray-900 mb-1">商品名 <span class="text-red-600">*</span></label>
+      <p th:if="${errors['name']}" class="text-red-600 text-xs mb-1" th:text="${errors['name']}"></p>
+      <input type="text" th:field="*{name}" class="w-full px-4 py-3 border rounded-lg text-sm">
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-900 mb-1">カテゴリ <span class="text-red-600">*</span></label>
+        <p th:if="${errors['categoryId']}" class="text-red-600 text-xs mb-1" th:text="${errors['categoryId']}"></p>
+        <p th:if="${errors['category']}" class="text-red-600 text-xs mb-1" th:text="${errors['category']}"></p>
+        <select th:field="*{categoryId}" class="w-full px-4 py-3 border rounded-lg text-sm">
+          <option value="0">選択してください</option>
+          <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-900 mb-1">メーカー <span class="text-red-600">*</span></label>
+        <p th:if="${errors['makerId']}" class="text-red-600 text-xs mb-1" th:text="${errors['makerId']}"></p>
+        <p th:if="${errors['maker']}" class="text-red-600 text-xs mb-1" th:text="${errors['maker']}"></p>
+        <select th:field="*{makerId}" class="w-full px-4 py-3 border rounded-lg text-sm">
+          <option value="0">選択してください</option>
+          <option th:each="m : ${makers}" th:value="${m.id}" th:text="${m.name}"></option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold text-gray-900 mb-1">価格 <span class="text-red-600">*</span></label>
+      <p th:if="${errors['price']}" class="text-red-600 text-xs mb-1" th:text="${errors['price']}"></p>
+      <input type="number" th:field="*{price}" min="0" class="w-full px-4 py-3 border rounded-lg text-sm">
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold text-gray-900 mb-1">商品詳細</label>
+      <p th:if="${errors['comment']}" class="text-red-600 text-xs mb-1" th:text="${errors['comment']}"></p>
+      <textarea th:field="*{comment}" rows="5" class="w-full px-4 py-3 border rounded-lg text-sm"></textarea>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold text-gray-900 mb-1">画像（最大 3 枚、JPEG/PNG/GIF、各 3MB 以内）</label>
+      <p th:if="${errors['pic']}" class="text-red-600 text-xs mb-1" th:text="${errors['pic']}"></p>
+      <input type="file" name="pic1" accept="image/jpeg,image/png,image/gif" class="block text-sm mb-1">
+      <input type="file" name="pic2" accept="image/jpeg,image/png,image/gif" class="block text-sm mb-1">
+      <input type="file" name="pic3" accept="image/jpeg,image/png,image/gif" class="block text-sm">
+    </div>
+
+    <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">出品する</button>
+  </form>
+</main>
+
+<footer th:replace="~{shared/layout :: footer}"></footer>
+</body>
+</html>

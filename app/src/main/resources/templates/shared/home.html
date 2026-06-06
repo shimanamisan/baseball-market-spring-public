@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="utf-8">
+  <title th:text="|${siteTitle ?: 'ホーム'}｜ BASEBALL MARKET|">BASEBALL MARKET</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-white min-h-screen" style="font-family: 'Noto Sans JP', sans-serif;">
+  <header th:replace="~{shared/layout :: header}"></header>
+  <main class="max-w-4xl mx-auto px-6 py-16">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">野球マーケット</h1>
+    <p class="text-gray-600" sec:authorize="isAuthenticated()">
+      ログイン中: <span th:text="${#authentication.name}"></span>
+    </p>
+    <p class="text-gray-600" sec:authorize="!isAuthenticated()">
+      未ログインです。<a th:href="@{/login}" class="text-red-600 underline">ログイン</a>
+    </p>
+    <p class="text-sm text-gray-400 mt-8">※ 商品一覧はフェーズ 6 で実装予定</p>
+  </main>
+  <footer th:replace="~{shared/layout :: footer}"></footer>
+</body>
+</html>
