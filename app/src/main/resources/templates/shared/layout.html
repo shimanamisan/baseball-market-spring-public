@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <meta name="_csrf_header" th:content="${_csrf.headerName}">
+  <title th:text="|${siteTitle ?: '野球マーケット'}｜ BASEBALL MARKET|">BASEBALL MARKET</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/assets/css/style.css}" th:if="${false}">
+</head>
+<body class="bg-white min-h-screen" style="font-family: 'Noto Sans JP', sans-serif;">
+
+<header th:fragment="header" class="sticky top-0 z-50 bg-white border-b border-gray-200">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="flex items-center justify-between h-20">
+      <a th:href="@{/}" class="flex items-center gap-3 hover:opacity-80">
+        <div class="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-red-600 to-red-700 rounded-xl">
+          <i class="ri-baseball-line text-2xl text-white"></i>
+        </div>
+        <span class="text-2xl font-bold text-gray-900">野球マーケット</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-4">
+        <a sec:authorize="!isAuthenticated()" th:href="@{/signup}" class="px-5 py-2.5 border-2 border-gray-300 hover:border-red-600 text-gray-700 hover:text-red-600 font-semibold rounded-lg">ユーザー登録</a>
+        <a sec:authorize="!isAuthenticated()" th:href="@{/login}" class="px-5 py-2.5 border-2 border-gray-300 hover:border-red-600 text-gray-700 hover:text-red-600 font-semibold rounded-lg">ログイン</a>
+        <a sec:authorize="isAuthenticated()" th:href="@{/mypage}" class="px-5 py-2.5 border-2 border-gray-300 hover:border-red-600 text-gray-700 hover:text-red-600 font-semibold rounded-lg">マイページ</a>
+        <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline">
+          <button type="submit" class="px-5 py-2.5 border-2 border-gray-300 hover:border-red-600 text-gray-700 hover:text-red-600 font-semibold rounded-lg">ログアウト</button>
+        </form>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<footer th:fragment="footer" class="bg-gray-900 text-white mt-16">
+  <div class="max-w-7xl mx-auto px-6 py-12 text-center text-gray-400">
+    <p>© 2026 Baseball Market</p>
+  </div>
+</footer>
+
+</body>
+</html>
