@@ -1,0 +1,3 @@
+rootProject.name = 'baseball-market-spring-workspace'
+
+includeBuild('app')
