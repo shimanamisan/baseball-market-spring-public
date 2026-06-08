@@ -8,6 +8,16 @@
             "mainClass": "com.shimanamisan.baseballmarket.BaseballMarketSpringApplication",
             "projectName": "baseball-market-spring",
             "args": ""
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-BaseballMarketSpringApplication<app>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.shimanamisan.baseballmarket.BaseballMarketSpringApplication",
+            "projectName": "app",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }
