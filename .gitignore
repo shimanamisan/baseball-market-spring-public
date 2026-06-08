@@ -26,3 +26,6 @@ replay_pid*
 # Gradle
 .gradle/
 build/
+
+# Claude Code（個人用ローカル設定は追跡しない）
+.claude/settings.local.json
