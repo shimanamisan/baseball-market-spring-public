@@ -98,19 +98,6 @@ public class ProductService {
     return makerRepository.findAll();
   }
 
-  /**
-   * 商品を売却済みにする。boards 作成は message context（フェーズ 7）で対応する想定。
-   */
-  public void markAsSold(ProductId productId, int buyerUserId) {
-    Product product = productRepository
-        .findById(productId)
-        .orElseThrow(() -> new ValidationException("商品が見つかりません"));
-    if (!product.canPurchase(buyerUserId)) {
-      throw new ValidationException("自分の出品した商品は購入できません");
-    }
-    product.markAsSold();
-  }
-
   public void deleteProduct(ProductId productId, int userId) {
     Product product = productRepository
         .findByIdAndOwner(productId, userId)
