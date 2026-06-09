@@ -13,6 +13,9 @@
 <header th:replace="~{shared/layout :: header}"></header>
 
 <main class="max-w-5xl mx-auto px-6 py-8">
+  <p th:if="${errorMessage}" th:text="${errorMessage}" role="alert"
+     class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg"></p>
+
   <a th:href="@{/}" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 text-sm">
     <i class="ri-arrow-left-line"></i>一覧に戻る
   </a>
@@ -46,8 +49,9 @@
 
       <div sec:authorize="isAuthenticated()">
         <form th:if="${!product.soldOut}" th:action="@{|/productDetail/${product.id}/purchase|}" method="post" class="mt-4">
-          <button type="submit" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">
-            <i class="ri-shopping-cart-line mr-2"></i>購入する（フェーズ 7 で有効化予定）
+          <button type="submit" onclick="return confirm('この商品を購入しますか？')"
+                  class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">
+            <i class="ri-shopping-cart-line mr-2"></i>購入する
           </button>
         </form>
       </div>

@@ -39,6 +39,9 @@ public class SecurityConfig {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         .authorizeHttpRequests(auth -> auth
+            // 商品詳細(GET)は公開だが、購入 POST は要認証（permitAll より先に評価させる）
+            .requestMatchers(org.springframework.http.HttpMethod.POST, "/productDetail/*/purchase")
+                .authenticated()
             .requestMatchers(
                 "/",
                 "/signup",
