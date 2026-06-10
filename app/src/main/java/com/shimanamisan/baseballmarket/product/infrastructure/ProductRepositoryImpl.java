@@ -34,6 +34,11 @@ public class ProductRepositoryImpl implements ProductRepository {
   }
 
   @Override
+  public Optional<Product> findByIdForUpdate(ProductId id) {
+    return jpa.findByIdAliveForUpdate(toInt(id));
+  }
+
+  @Override
   public Optional<Product> findByIdAndOwner(ProductId id, int userId) {
     return jpa.findByIdAndOwnerAlive(toInt(id), userId);
   }

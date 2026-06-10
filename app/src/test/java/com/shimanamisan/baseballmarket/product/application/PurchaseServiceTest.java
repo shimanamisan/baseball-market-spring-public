@@ -43,7 +43,7 @@ class PurchaseServiceTest {
   @DisplayName("購入時に商品を売却済みにし、出品者と購入者の掲示板を作成する")
   void purchaseMarksSoldAndCreatesBoard() {
     Product product = product(SELLER);
-    when(productRepository.findById(any(ProductId.class))).thenReturn(Optional.of(product));
+    when(productRepository.findByIdForUpdate(any(ProductId.class))).thenReturn(Optional.of(product));
     when(messageService.createBoard(SELLER, BUYER, PRODUCT_ID)).thenReturn(BoardId.fromLong(BOARD_ID));
 
     BoardId result = purchaseService.purchase(PRODUCT_ID, BUYER);
@@ -54,33 +54,48 @@ class PurchaseServiceTest {
   }
 
   @Test
+  @DisplayName("二重購入対策: 商品はロック付き取得(findByIdForUpdate)で読み、非ロックの findById は使わない")
+  void readsProductWithPessimisticLock() {
+    Product product = product(SELLER);
+    when(productRepository.findByIdForUpdate(any(ProductId.class))).thenReturn(Optional.of(product));
+    when(messageService.createBoard(SELLER, BUYER, PRODUCT_ID)).thenReturn(BoardId.fromLong(BOARD_ID));
+
+    purchaseService.purchase(PRODUCT_ID, BUYER);
+
+    verify(productRepository).findByIdForUpdate(any(ProductId.class));
+    verify(productRepository, never()).findById(any(ProductId.class));
+  }
+
+  @Test
   @DisplayName("自分の出品した商品は購入できない")
   void rejectsOwnProduct() {
     Product product = product(BUYER); // 出品者 == 購入者
-    when(productRepository.findById(any(ProductId.class))).thenReturn(Optional.of(product));
+    when(productRepository.findByIdForUpdate(any(ProductId.class))).thenReturn(Optional.of(product));
 
     assertThatThrownBy(() -> purchaseService.purchase(PRODUCT_ID, BUYER))
-        .isInstanceOf(ValidationException.class);
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("自分が出品した商品");
     assertThat(product.isSoldOut()).isFalse();
     verify(messageService, never()).createBoard(anyInt(), anyInt(), anyInt());
   }
 
   @Test
-  @DisplayName("売却済みの商品は購入できない")
+  @DisplayName("売却済みの商品は購入できない（競合に敗れた場合もこの経路で売却済みメッセージを返す）")
   void rejectsSoldProduct() {
     Product product = product(SELLER);
     product.markAsSold();
-    when(productRepository.findById(any(ProductId.class))).thenReturn(Optional.of(product));
+    when(productRepository.findByIdForUpdate(any(ProductId.class))).thenReturn(Optional.of(product));
 
     assertThatThrownBy(() -> purchaseService.purchase(PRODUCT_ID, BUYER))
-        .isInstanceOf(ValidationException.class);
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("売却済み");
     verify(messageService, never()).createBoard(anyInt(), anyInt(), anyInt());
   }
 
   @Test
   @DisplayName("商品が存在しなければ購入できない")
   void rejectsMissingProduct() {
-    when(productRepository.findById(any(ProductId.class))).thenReturn(Optional.empty());
+    when(productRepository.findByIdForUpdate(any(ProductId.class))).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> purchaseService.purchase(PRODUCT_ID, BUYER))
         .isInstanceOf(ValidationException.class)
