@@ -37,13 +37,20 @@ public class PurchaseService {
    * @throws ValidationException 商品が存在しない / 自分の出品 / 売切れ済みの場合
    */
   public BoardId purchase(int productId, int buyerUserId) {
+    // 二重購入対策: 対象商品を行ロック（FOR UPDATE）して取得する。同一商品への同時購入は
+    // 直列化され、後続トランザクションはロック解放後に sold_out_flg=1 を読んで canPurchase で弾かれる。
     Product product =
         productRepository
-            .findById(ProductId.fromLong(productId))
+            .findByIdForUpdate(ProductId.fromLong(productId))
             .orElseThrow(() -> new ValidationException("商品が見つかりません"));
 
     if (!product.canPurchase(buyerUserId)) {
-      throw new ValidationException("購入できない商品です（自分の出品、または売却済みの可能性があります）");
+      // 売却済みを優先して判定。競合に敗れた（他ユーザーが先に購入した）場合はここに該当し、
+      // 「売却済み」という的確なメッセージを表示する。
+      if (product.isSoldOut()) {
+        throw new ValidationException("申し訳ありません。この商品はすでに売却済みです");
+      }
+      throw new ValidationException("自分が出品した商品は購入できません");
     }
 
     product.markAsSold();

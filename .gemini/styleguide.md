@@ -32,7 +32,8 @@ com.shimanamisan.baseballmarket.<context>/
 - **コンストラクタ DI** を使用（フィールドインジェクション・`new` での直接生成を避ける）
 - Controller は薄く保ち、ビジネスロジックは application / domain 層へ
 - `@Transactional` は **application 層のみ** に置く
-- **domain 層に Spring アノテーションを持ち込まない**（純 POJO / record で表現）
+- **domain 層に Spring framework アノテーションを持ち込まない**（`@Service` `@Component` `@Transactional` など。Value Object は `record`、エンティティは POJO で表現）
+  - ただし JPA 永続化アノテーション（`@Entity` `@Table` `@Column` 等）は、**集約が小さいうちはドメインエンティティ＝JPA Entity 兼務を許容**（`.claude/architecture.md` §5）。複雑化したら `infrastructure` 層へ JPA Entity を分離する
 - Value Object は `record` で表現する
 - DTO 命名: presentation 層で `XxxRequest` / `XxxResponse`
 - 命名規則:
@@ -50,7 +51,11 @@ com.shimanamisan.baseballmarket.<context>/
 
 ## レビュー重点項目
 1. **レイヤー依存方向の遵守**（`presentation → application → domain ← infrastructure`、逆流していないか）
-2. **domain 層の純度**（Spring / JPA アノテーションや framework 依存が混入していないか）
+2. **domain 層の純度**
+   - **Spring / framework 依存（`@Service` `@Component` `@Transactional` 等）を domain 層に持ち込んでいないか**
+   - **越境参照の禁止**: 他 context の Entity / クラスを domain で直接参照していないか
+   - **貧血ドメインの回避**: ドメインロジックがエンティティ／Value Object に宿っているか（getter/setter の塊になっていないか）
+   - ※ JPA 永続化アノテーション（`@Entity` `@Table` 等）の付与は、**集約が小さいうちはドメインエンティティ＝JPA Entity 兼務を許容**する設計判断（`.claude/architecture.md` §5）。これ単体ではフラグしない。複雑化したら `infrastructure` へ JPA Entity を分離する
 3. **トランザクション境界**（`@Transactional` が application 層に置かれ、Controller / domain に漏れていないか）
 4. **SQL インジェクション対策**（パラメータ化クエリ・`@Param` バインド、文字列連結による動的クエリの排除）
 5. **N+1 問題**（`@EntityGraph` / `join fetch` の適切な利用）
