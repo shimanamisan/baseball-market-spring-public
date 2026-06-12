@@ -26,8 +26,11 @@ git checkout develop && git pull --ff-only origin develop
 git checkout main && git pull --ff-only origin main
 
 # 4. develop にマージ済みのローカル作業ブランチを削除（main/develop は除外）
-#    ※ xargs -r は GNU 拡張のため、移植性のある while read ループを使う
-git branch --merged develop | grep -vE '^\*|main|develop' | while read -r branch; do git branch -d "$branch"; done
+#    ※ porcelain の git branch は color.branch=always 環境で ANSI 色が混入するため、
+#       plumbing の git for-each-ref を使う。regex はアンカー付きで完全一致のみ除外する。
+git for-each-ref --merged develop --format='%(refname:short)' refs/heads/ \
+  | grep -vE '^(main|develop)$' \
+  | while read -r branch; do git branch -d "$branch"; done
 
 # 5. develop に戻して状態を確認
 git checkout develop
