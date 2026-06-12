@@ -80,6 +80,7 @@ public class MessageController {
     } catch (ValidationException e) {
       log.debug("[message:send] board={} {}", boardId, e.getFirstError());
       redirect.addFlashAttribute("errorMessage", e.getFirstError());
+      redirect.addFlashAttribute("submittedMsg", form.getMsg()); // 入力本文を保持し再入力を防ぐ
     }
     return "redirect:/message?b_id=" + boardId;
   }
