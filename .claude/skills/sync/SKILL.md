@@ -26,7 +26,8 @@ git checkout develop && git pull --ff-only origin develop
 git checkout main && git pull --ff-only origin main
 
 # 4. develop にマージ済みのローカル作業ブランチを削除（main/develop は除外）
-git branch --merged develop | grep -vE '^\*|main|develop' | xargs -r git branch -d
+#    ※ xargs -r は GNU 拡張のため、移植性のある while read ループを使う
+git branch --merged develop | grep -vE '^\*|main|develop' | while read -r branch; do git branch -d "$branch"; done
 
 # 5. develop に戻して状態を確認
 git checkout develop
