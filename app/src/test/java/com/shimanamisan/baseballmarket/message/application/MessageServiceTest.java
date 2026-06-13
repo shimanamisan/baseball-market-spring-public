@@ -108,6 +108,32 @@ class MessageServiceTest {
   }
 
   @Nested
+  @DisplayName("findParticipatingBoards")
+  class FindParticipatingBoards {
+    @Test
+    @DisplayName("リポジトリの返す参加掲示板（更新日時降順）をそのまま返す")
+    void returnsRepositoryResult() {
+      Board first = new Board(SELLER, BUYER, PRODUCT);
+      Board second = new Board(STRANGER, SELLER, 31);
+      when(messageRepository.findBoardsByParticipant(SELLER))
+          .thenReturn(List.of(first, second));
+
+      List<Board> result = messageService.findParticipatingBoards(SELLER);
+
+      assertThat(result).containsExactly(first, second);
+      verify(messageRepository).findBoardsByParticipant(SELLER);
+    }
+
+    @Test
+    @DisplayName("参加掲示板が無ければ空リストを返す")
+    void returnsEmptyWhenNone() {
+      when(messageRepository.findBoardsByParticipant(SELLER)).thenReturn(List.of());
+
+      assertThat(messageService.findParticipatingBoards(SELLER)).isEmpty();
+    }
+  }
+
+  @Nested
   @DisplayName("sendMessage")
   class SendMessage {
     @Test

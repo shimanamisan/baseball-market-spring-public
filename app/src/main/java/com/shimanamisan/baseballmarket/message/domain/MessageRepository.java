@@ -16,4 +16,10 @@ public interface MessageRepository {
   List<Message> findMessagesByBoardId(BoardId boardId);
 
   MessageId saveMessage(Message message);
+
+  /**
+   * 指定ユーザーが出品者または購入者として参加している掲示板を、更新日時の降順で返す。
+   * 削除済み（delete_flg != 0）の掲示板は除外する。mypage の参加掲示板一覧が消費する。
+   */
+  List<Board> findBoardsByParticipant(int userId);
 }

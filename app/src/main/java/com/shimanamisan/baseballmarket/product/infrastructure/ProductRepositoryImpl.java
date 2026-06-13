@@ -49,6 +49,14 @@ public class ProductRepositoryImpl implements ProductRepository {
   }
 
   @Override
+  public List<Product> findByIdsAlive(List<Integer> ids) {
+    if (ids == null || ids.isEmpty()) {
+      return List.of();
+    }
+    return jpa.findByIdsAlive(ids);
+  }
+
+  @Override
   public SearchResult search(SearchCriteria c) {
     Sort sort = switch (c.sortOrder() == null ? 0 : c.sortOrder()) {
       case 1 -> Sort.by(Sort.Direction.ASC, "price");
