@@ -12,7 +12,7 @@
 			"installMaven": "false",
 			"installGradle": "true"
 		},
-		"ghcr.io/devcontainers/features/node:1": {},
+		"ghcr.io/devcontainers/features/node:2": {},
         "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
 	},
 	"customizations": {
