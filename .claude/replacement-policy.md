@@ -27,9 +27,9 @@
 | マイグレーション | Flyway（旧 `database/migrations/*.sql` を移植） | 確定 |
 | バリデーション | Jakarta Bean Validation（`@Valid` + Hibernate Validator） | 確定（`spring-boot-starter-validation` 同梱済み） |
 | DB ドライバ | MySQL Connector/J | 確定 |
-| 認証 | Spring Security + フォーム認証 + BCrypt | 要確定 |
-| メール | Spring Boot Starter Mail（旧 PHPMailer 相当） | 要確定 |
-| 開発用メールサーバ | MailHog（旧 devcontainer と同じ）を docker-compose に追加 | 要追加 |
+| 認証 | Spring Security + フォーム認証 + BCrypt | 確定（user context で実装済み） |
+| メール | Spring Boot Starter Mail（旧 PHPMailer 相当） | 確定（`spring-boot-starter-mail` 同梱済み） |
+| 開発用メールサーバ | MailHog（旧 devcontainer と同じ）を docker-compose に追加 | 追加済み |
 | DB スキーマ | 旧 `bb_market` スキーマ（`users` / `user_profiles` 分離後）を踏襲 | 確定 |
 
 「要確定」項目は、対象機能の着手前にユーザーへ確認すること。決まったら本表を更新する。

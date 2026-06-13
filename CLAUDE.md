@@ -13,12 +13,20 @@
 ## 現状
 
 - Spring Boot 3.4.x + Java 21 + Gradle 構成（`app/`）
-- 依存: Web / Thymeleaf / Spring Data JPA / Validation / Flyway / MySQL Connector
+- 依存: Web / Thymeleaf / Spring Data JPA / Validation / Spring Security / Spring Mail / Flyway（core + mysql）/ MySQL Connector（開発メールは MailHog）
 - パッケージルート: `com.shimanamisan.baseballmarket`
 - メインクラス: `com.shimanamisan.baseballmarket.BaseballMarketSpringApplication`
 - DB: `bb_market` / user `bbuser` / MySQL 8（devcontainer の docker-compose で起動）
-- スキーマ管理: Flyway（`app/src/main/resources/db/migration/V*__*.sql`、現状マイグレーション未作成）
-- 機能リプレースは未着手。最初の対象は `user` context（signup → メール認証 → login）の予定
+- スキーマ管理: Flyway（`app/src/main/resources/db/migration/V*__*.sql`、`V1__init.sql` 作成済み）
+
+### リプレース進捗（フェーズ制）
+
+旧 PHP の 6 つの Bounded Context のうち **5 つが移植完了**。残るは mypage のみ。
+
+- ✅ `shared` / `user`（signup・メール認証・login・パスワード編集/リマインド・プロフィール編集・退会）/ `product`（一覧・詳細・出品・売買履歴）/ `message`（掲示板 + 購入フロー）/ `like`（Ajax いいね）
+- ⬜ `mypage`（出品商品 / お気に入り / 参加中の掲示板の集約表示）— **次フェーズ（フェーズ 8）**
+- 主動線「登録 → メール認証 → ログイン → 出品 → 一覧 → 詳細 → 購入 → 掲示板で連絡」は一通り稼働中
+- 詳細な経緯は `_docs/changelog/` および `_docs/2026-06-13_0942_replacement-progress-analysis.md` を参照
 
 ## 作業着手前のチェック
 
