@@ -18,6 +18,12 @@ public interface ProductRepository {
 
   List<Product> findByOwner(int userId);
 
+  /**
+   * 指定 ID 群のうち削除されていない（delete_flg = 0）商品を返す。
+   * 並び順は保証しない（呼び出し元が要求順へ整列する）。mypage のお気に入り表示が消費する。
+   */
+  List<Product> findByIdsAlive(List<Integer> ids);
+
   SearchResult search(SearchCriteria criteria);
 
   ProductId save(Product product);

@@ -42,6 +42,11 @@ public class MessageRepositoryImpl implements MessageRepository {
     return MessageId.fromLong(saved.getId().longValue());
   }
 
+  @Override
+  public List<Board> findBoardsByParticipant(int userId) {
+    return boardJpa.findByParticipantAlive(userId);
+  }
+
   private static int toInt(long value, String label) {
     if (value > Integer.MAX_VALUE) {
       throw new IllegalArgumentException(label + " out of INT range: " + value);
