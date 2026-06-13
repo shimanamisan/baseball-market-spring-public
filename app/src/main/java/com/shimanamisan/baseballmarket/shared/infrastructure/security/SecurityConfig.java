@@ -52,6 +52,7 @@ public class SecurityConfig {
                 "/passRemindSend",
                 "/passRemindRecieve",
                 "/productDetail/**",
+                "/likes/**",
                 "/login",
                 "/css/**",
                 "/js/**",

@@ -1,8 +1,11 @@
 package com.shimanamisan.baseballmarket.product.presentation;
 
+import com.shimanamisan.baseballmarket.like.application.LikeService;
 import com.shimanamisan.baseballmarket.product.application.ProductService;
 import com.shimanamisan.baseballmarket.product.domain.Product;
 import com.shimanamisan.baseballmarket.product.domain.ProductId;
+import com.shimanamisan.baseballmarket.user.application.UserService;
+import java.security.Principal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,13 +18,19 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ProductDetailController {
 
   private final ProductService productService;
+  private final LikeService likeService;
+  private final UserService userService;
 
-  public ProductDetailController(ProductService productService) {
+  public ProductDetailController(
+      ProductService productService, LikeService likeService, UserService userService) {
     this.productService = productService;
+    this.likeService = likeService;
+    this.userService = userService;
   }
 
   @GetMapping("/{id}")
-  public String show(@PathVariable("id") int id, Model model, RedirectAttributes redirect) {
+  public String show(
+      @PathVariable("id") int id, Principal principal, Model model, RedirectAttributes redirect) {
     if (id <= 0) {
       return "redirect:/";
     }
@@ -32,8 +41,17 @@ public class ProductDetailController {
       return "redirect:/";
     }
 
+    boolean liked = false;
+    if (principal != null) {
+      var currentUser = userService.findByEmail(principal.getName()).orElse(null);
+      if (currentUser != null) {
+        liked = likeService.isLiked(currentUser.getId(), product.getId());
+      }
+    }
+
     model.addAttribute("siteTitle", product.getProductName());
     model.addAttribute("product", product);
+    model.addAttribute("liked", liked);
     model.addAttribute("category",
         productService.listCategories().stream()
             .filter(c -> c.getId().equals(product.getCategoryId()))
