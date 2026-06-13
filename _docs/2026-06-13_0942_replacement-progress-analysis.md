@@ -52,7 +52,7 @@
 
 | 項目 | 状況 |
 | --- | --- |
-| `db` ホスト名の別名衝突（環境問題） | 素の `./gradlew test` で `contextLoads` が失敗する。`application.properties` の DB ホストを `baseball-market-spring-db` に一意化するか、ネットワーク分離で恒久対応（未実施） |
+| `db` ホスト名の別名衝突（環境問題） | 素の `./gradlew test` で `contextLoads` が失敗する。恒久対応の候補は ①テスト用プロファイル（`application-test.properties`）の導入、②環境変数（`SPRING_DATASOURCE_URL`）による接続先の一意化（フェーズ 7 検証で全テスト緑を確認済みの手法）、③ネットワーク分離（いずれも未実施）。`application.properties` を `baseball-market-spring-db` に直接書き換える方法はローカル／CI 間のポータビリティを下げるため、プロファイル・環境変数による動的制御を優先する |
 | `messages.bord_id` のタイポ列 | 当面保持。リネームは将来の独立マイグレーション（V2 以降）で |
 | 掲示板表示の OSIV 依存 | OSIV を切る判断をする場合は表示用 DTO 化が必要 |
 | メッセージのリアルタイム更新 | 旧 PHP 同様ページリロード方式。WebSocket 等は対象外 |
