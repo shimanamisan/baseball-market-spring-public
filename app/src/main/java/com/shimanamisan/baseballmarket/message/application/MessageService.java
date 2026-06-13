@@ -69,6 +69,15 @@ public class MessageService {
     return messageRepository.saveMessage(message);
   }
 
+  /**
+   * 指定ユーザーが参加している掲示板を更新日時の降順で取得する。
+   * 商品・相手ユーザーの表示情報は呼び出し元（mypage）が他 context の API で解決する。
+   */
+  @Transactional(readOnly = true)
+  public List<Board> findParticipatingBoards(int userId) {
+    return messageRepository.findBoardsByParticipant(userId);
+  }
+
   private Board findParticipatingBoard(int boardId, int userId) {
     Board board =
         messageRepository

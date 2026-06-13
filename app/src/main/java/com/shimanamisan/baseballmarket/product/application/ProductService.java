@@ -13,7 +13,10 @@ import com.shimanamisan.baseballmarket.product.domain.ProductRepository;
 import com.shimanamisan.baseballmarket.product.domain.SaleHistoryItem;
 import com.shimanamisan.baseballmarket.product.domain.SearchCriteria;
 import com.shimanamisan.baseballmarket.product.domain.SearchResult;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,6 +84,30 @@ public class ProductService {
   @Transactional(readOnly = true)
   public List<Product> findByOwner(int userId) {
     return productRepository.findByOwner(userId);
+  }
+
+  /**
+   * 指定 ID 群の生存商品を、渡された ID の並び順を維持して返す。
+   * お気に入り（like の新しい順 ID 列）を product の表示情報へ N+1 なしで解決するために用いる。
+   * 削除済み等でリポジトリから返らない ID は結果から自然に除外される。
+   */
+  @Transactional(readOnly = true)
+  public List<Product> findByIds(List<Integer> ids) {
+    if (ids == null || ids.isEmpty()) {
+      return List.of();
+    }
+    Map<Integer, Product> byId = new HashMap<>();
+    for (Product p : productRepository.findByIdsAlive(ids)) {
+      byId.put(p.getId(), p);
+    }
+    List<Product> ordered = new ArrayList<>(ids.size());
+    for (Integer id : ids) {
+      Product p = byId.get(id);
+      if (p != null) {
+        ordered.add(p);
+      }
+    }
+    return ordered;
   }
 
   @Transactional(readOnly = true)

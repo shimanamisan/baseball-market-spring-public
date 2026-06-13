@@ -28,5 +28,8 @@ interface ProductJpaRepository
   @Query("select p from Product p where p.userId = :userId and p.deleteFlg = 0 order by p.id desc")
   List<Product> findByOwnerAlive(Integer userId);
 
+  @Query("select p from Product p where p.id in :ids and p.deleteFlg = 0")
+  List<Product> findByIdsAlive(List<Integer> ids);
+
   Page<Product> findAll(org.springframework.data.jpa.domain.Specification<Product> spec, Pageable pageable);
 }
