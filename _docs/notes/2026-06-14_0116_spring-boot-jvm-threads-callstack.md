@@ -45,7 +45,7 @@ Spring Boot が内蔵する組み込み Tomcat に由来する。
 | スレッド名 | 役割 |
 |---|---|
 | **Catalina-utility-1 / -2** | Catalina は Tomcat コンテナのコア部分の名称。セッションの期限切れチェックやリソース再読み込み監視など、バックグラウンドの定期メンテナンスを担うユーティリティスレッドプール。 |
-| **container-0** | Tomcat コンテナの起動・初期化に使われるスレッド。 |
+| **container-0** | Spring Boot の `TomcatWebServer#startNonDaemonAwaitThread()` が起動する**非デーモンの待機スレッド**。`run()` は `tomcat.getServer().await()` を呼んでブロックし、組み込みサーバ（および JVM）を起動後も終了させずに稼働させ続ける。セッション期限切れチェック等の定期メンテナンスは担当しない（それは上記 `Catalina-utility` の役割）。 |
 | **http-nio-8080-exec-1 / -2 / -3** | **最重要。リクエスト処理ワーカースレッド**。`nio` = ノンブロッキング I/O コネクタ、`8080` = リッスンポート、`exec-N` = スレッドプール内の実行スレッド番号。HTTP リクエスト到着時にこのプールから 1 本割り当てられ、`@Controller → @Service → Repository` の処理を実行する。同時に複数本あることで並行リクエストを捌ける。 |
 
 > `@Controller` のブレークポイントで停止したとき、止まっているのはこの `http-nio-8080-exec-N` スレッドのいずれか。
