@@ -1,72 +1,285 @@
 <!DOCTYPE html>
-<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<html lang="ja"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title th:text="|${siteTitle}｜ BASEBALL MARKET|">商品一覧</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body style="font-family: 'Noto Sans JP', sans-serif;">
 <header th:replace="~{shared/layout :: header}"></header>
 
-<div th:if="${msgSuccess}" class="max-w-7xl mx-auto px-6 py-4">
-  <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+<div th:if="${msgSuccess}" class="max-w-7xl mx-auto px-6 pt-4">
+  <div class="p-4 bg-green-50 border border-green-200 rounded-lg" role="status">
     <p class="text-green-800 text-sm font-medium" th:text="${msgSuccess}"></p>
   </div>
 </div>
 
-<main class="max-w-7xl mx-auto px-6 py-8">
-  <form th:action="@{/}" method="get" class="bg-white p-4 rounded-lg shadow mb-6 grid grid-cols-1 md:grid-cols-4 gap-3">
-    <select name="c_id" class="px-3 py-2 border rounded text-sm">
-      <option value="0">カテゴリ：すべて</option>
-      <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"
-              th:selected="${selectedCategory != null and selectedCategory == c.id}"></option>
-    </select>
-    <select name="m_id" class="px-3 py-2 border rounded text-sm">
-      <option value="0">メーカー：すべて</option>
-      <option th:each="m : ${makers}" th:value="${m.id}" th:text="${m.name}"
-              th:selected="${selectedMaker != null and selectedMaker == m.id}"></option>
-    </select>
-    <select name="sort" class="px-3 py-2 border rounded text-sm">
-      <option value="0">並び替え：新着順</option>
-      <option value="1" th:selected="${selectedSort != null and selectedSort == 1}">価格が安い順</option>
-      <option value="2" th:selected="${selectedSort != null and selectedSort == 2}">価格が高い順</option>
-    </select>
-    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded font-bold">絞り込む</button>
-  </form>
-
-  <p class="text-sm text-gray-600 mb-4" th:text="|全 ${result.totalCount} 件 / ${result.currentPage} / ${result.totalPages > 0 ? result.totalPages : 1} ページ|"></p>
-
-  <div th:if="${#lists.isEmpty(result.items)}" class="text-center py-16 text-gray-500">
-    商品が見つかりませんでした
+<!-- Hero Section -->
+<section class="relative bg-gradient-to-br from-red-600 via-red-700 to-orange-600 text-white overflow-hidden">
+  <div class="absolute inset-0 bg-black/20"></div>
+  <div class="absolute inset-0 opacity-10" aria-hidden="true">
+    <div class="absolute top-20 left-10 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+    <div class="absolute bottom-20 right-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
   </div>
 
-  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-    <a th:each="p : ${result.items}" th:href="@{|/productDetail/${p.id}|}"
-       class="block bg-white rounded-xl shadow hover:shadow-lg transition">
-      <div class="aspect-square bg-gray-100 overflow-hidden rounded-t-xl">
-        <img th:if="${p.pic1 != null and !#strings.isEmpty(p.pic1)}" th:src="@{'/' + ${p.pic1}}"
-             alt="" class="w-full h-full object-cover">
-        <div th:unless="${p.pic1 != null and !#strings.isEmpty(p.pic1)}" class="flex items-center justify-center h-full text-gray-400">
-          <i class="ri-image-line text-4xl"></i>
+  <div class="relative max-w-7xl mx-auto px-6 py-24">
+    <div class="text-center">
+      <div class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
+        <i class="ri-recycle-line text-xl" aria-hidden="true"></i>
+        <span class="text-sm font-semibold">野球用品の個人売買プラットフォーム</span>
+      </div>
+
+      <h1 class="text-5xl md:text-6xl font-black mb-6 leading-tight">
+        野球用品を<br>
+        もっと手軽に、もっとお得に
+      </h1>
+
+      <p class="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto">
+        使わなくなった野球用品を売る。欲しかった用品を安く買う。<br>
+        野球愛好家のためのフリーマーケット
+      </p>
+
+      <div class="flex flex-wrap gap-4 justify-center mb-12">
+        <div class="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-lg">
+          <div class="text-3xl font-bold" th:text="|${result.totalCount}+|">0+</div>
+          <div class="text-sm text-white/80">出品商品数</div>
+        </div>
+        <div class="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-lg">
+          <div class="text-3xl font-bold">8,500+</div>
+          <div class="text-sm text-white/80">登録ユーザー</div>
+        </div>
+        <div class="bg-white/20 backdrop-blur-sm px-6 py-3 rounded-lg">
+          <div class="text-3xl font-bold">98%</div>
+          <div class="text-sm text-white/80">満足度</div>
         </div>
       </div>
-      <div class="p-3">
-        <p class="text-sm font-semibold text-gray-900 line-clamp-2" th:text="${p.productName}"></p>
-        <p class="text-base font-bold text-red-600 mt-1" th:text="|¥${#numbers.formatInteger(p.price, 1, 'COMMA')}|"></p>
-        <p th:if="${p.soldOut}" class="text-xs text-white bg-gray-700 inline-block px-2 py-0.5 rounded mt-1">SOLD</p>
+
+      <div class="flex flex-wrap gap-4 justify-center">
+        <a href="#product-list"
+           class="px-8 py-4 bg-white text-red-600 font-bold rounded-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 whitespace-nowrap">
+          <i class="ri-search-line text-xl" aria-hidden="true"></i>
+          商品を探す
+        </a>
+        <a th:href="@{/registProduct}"
+           class="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-lg hover:bg-white/10 transition-all duration-200 flex items-center gap-2 whitespace-nowrap">
+          <i class="ri-add-circle-line text-xl" aria-hidden="true"></i>
+          出品する
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="absolute bottom-0 left-0 right-0" aria-hidden="true">
+    <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white"/>
+    </svg>
+  </div>
+</section>
+
+<!-- Filter Bar -->
+<div class="sticky top-20 z-40 bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-6 lg:px-8 py-4">
+    <form th:action="@{/}" method="get" class="flex items-center gap-4 flex-wrap">
+      <div class="flex-1 min-w-[200px]">
+        <label for="filter-category" class="sr-only">カテゴリーで絞り込む</label>
+        <div class="relative">
+          <select id="filter-category" name="c_id"
+                  class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base appearance-none bg-white cursor-pointer">
+            <option value="0">カテゴリー：すべて</option>
+            <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"
+                    th:selected="${selectedCategory != null and selectedCategory == c.id}"></option>
+          </select>
+          <i class="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-[200px]">
+        <label for="filter-maker" class="sr-only">メーカーで絞り込む</label>
+        <div class="relative">
+          <select id="filter-maker" name="m_id"
+                  class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base appearance-none bg-white cursor-pointer">
+            <option value="0">メーカー：すべて</option>
+            <option th:each="m : ${makers}" th:value="${m.id}" th:text="${m.name}"
+                    th:selected="${selectedMaker != null and selectedMaker == m.id}"></option>
+          </select>
+          <i class="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-[200px]">
+        <label for="filter-sort" class="sr-only">並び替え</label>
+        <div class="relative">
+          <select id="filter-sort" name="sort"
+                  class="w-full pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base appearance-none bg-white cursor-pointer">
+            <option value="0">並び替え：新着順</option>
+            <option value="1" th:selected="${selectedSort != null and selectedSort == 1}">価格が安い順</option>
+            <option value="2" th:selected="${selectedSort != null and selectedSort == 2}">価格が高い順</option>
+          </select>
+          <i class="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <button type="submit"
+              class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2 whitespace-nowrap">
+        <i class="ri-search-line text-lg" aria-hidden="true"></i>
+        絞り込む
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Product Grid -->
+<main id="product-list" class="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h2 class="text-3xl font-bold text-gray-900">商品一覧</h2>
+      <p class="text-gray-600 mt-2" th:text="|${result.totalCount}件の商品が見つかりました|"></p>
+    </div>
+    <div class="text-sm text-gray-600">
+      <span th:text="|${result.currentPage} / ${result.totalPages > 0 ? result.totalPages : 1} ページ|"></span>
+    </div>
+  </div>
+
+  <div th:if="${#lists.isEmpty(result.items)}" class="text-center py-20">
+    <div class="w-20 h-20 flex items-center justify-center bg-gray-100 rounded-full mx-auto mb-6">
+      <i class="ri-inbox-line text-4xl text-gray-400" aria-hidden="true"></i>
+    </div>
+    <h3 class="text-xl font-bold text-gray-900 mb-2">商品が見つかりませんでした</h3>
+    <p class="text-gray-600">条件を変更して再検索してください</p>
+  </div>
+
+  <div th:unless="${#lists.isEmpty(result.items)}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <a th:each="p : ${result.items}" th:href="@{|/productDetail/${p.id}|}"
+       class="group block bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+       th:classappend="${p.soldOut} ? 'opacity-75' : ''">
+      <div class="relative aspect-square w-full h-64 overflow-hidden bg-gray-100">
+        <img th:if="${p.pic1 != null and !#strings.isEmpty(p.pic1)}" th:src="@{'/' + ${p.pic1}}"
+             th:alt="${p.productName}" loading="lazy"
+             class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+             th:classappend="${p.soldOut} ? 'grayscale' : ''">
+        <div th:unless="${p.pic1 != null and !#strings.isEmpty(p.pic1)}"
+             class="flex items-center justify-center h-full text-gray-400">
+          <i class="ri-image-line text-5xl" aria-hidden="true"></i>
+        </div>
+        <div th:if="${p.soldOut}" class="absolute inset-0 bg-black/40 flex items-center justify-center">
+          <span class="bg-gray-800 text-white px-6 py-3 rounded-full font-bold text-lg shadow-2xl">販売済み</span>
+        </div>
+      </div>
+      <div class="p-5">
+        <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]" th:text="${p.productName}"></h3>
+        <div class="flex items-center justify-between">
+          <p class="text-2xl font-bold"
+             th:classappend="${p.soldOut} ? 'text-gray-400' : 'text-red-600'"
+             th:text="|¥${#numbers.formatInteger(p.price, 1, 'COMMA')}|"></p>
+          <span th:if="${p.soldOut}" class="text-sm font-semibold text-gray-400">販売済み</span>
+          <span th:unless="${p.soldOut}"
+                class="inline-flex items-center gap-1 text-sm font-semibold text-gray-700 group-hover:text-red-600 transition-colors duration-200">
+            詳細を見る<i class="ri-arrow-right-line" aria-hidden="true"></i>
+          </span>
+        </div>
       </div>
     </a>
   </div>
 
-  <nav th:if="${result.totalPages > 1}" class="flex justify-center gap-2 mt-8">
-    <a th:each="i : ${#numbers.sequence(1, result.totalPages)}"
+  <!-- Pagination -->
+  <nav th:if="${result.totalPages > 1}" class="flex items-center justify-center gap-2 mt-12" aria-label="ページ送り"
+       th:with="rawStart=${result.currentPage - 2},
+                rawEnd=${result.currentPage + 2},
+                start=${rawStart < 1 ? 1 : rawStart},
+                end=${rawEnd > result.totalPages ? result.totalPages : rawEnd}">
+    <a th:if="${result.currentPage > 1}"
+       th:href="@{/(p=${result.currentPage - 1}, c_id=${selectedCategory}, m_id=${selectedMaker}, sort=${selectedSort})}"
+       class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+       aria-label="前のページ">
+      <i class="ri-arrow-left-s-line text-lg" aria-hidden="true"></i>
+    </a>
+
+    <a th:each="i : ${#numbers.sequence(start, end)}"
        th:href="@{/(p=${i}, c_id=${selectedCategory}, m_id=${selectedMaker}, sort=${selectedSort})}"
        th:text="${i}"
-       th:class="${i == result.currentPage} ? 'px-3 py-1 bg-red-600 text-white rounded' : 'px-3 py-1 border rounded hover:bg-gray-100'"></a>
+       th:aria-current="${i == result.currentPage} ? 'page' : null"
+       th:class="${i == result.currentPage}
+                 ? 'w-10 h-10 flex items-center justify-center rounded-lg font-semibold bg-red-600 text-white shadow-lg'
+                 : 'w-10 h-10 flex items-center justify-center rounded-lg font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200'"></a>
+
+    <a th:if="${result.currentPage < result.totalPages}"
+       th:href="@{/(p=${result.currentPage + 1}, c_id=${selectedCategory}, m_id=${selectedMaker}, sort=${selectedSort})}"
+       class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+       aria-label="次のページ">
+      <i class="ri-arrow-right-s-line text-lg" aria-hidden="true"></i>
+    </a>
   </nav>
 </main>
+
+<!-- Trust Signals -->
+<section class="py-20 bg-gray-50">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-black text-gray-900 mb-4">安心・安全な取引環境</h2>
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto">野球用品の個人売買を、より安心して楽しんでいただくための仕組みを整えています</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 text-center group">
+        <div class="w-16 h-16 flex items-center justify-center bg-red-100 rounded-full mx-auto mb-6 group-hover:bg-red-600 transition-colors duration-300">
+          <i class="ri-shield-check-line text-3xl text-red-600 group-hover:text-white transition-colors duration-300" aria-hidden="true"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">安心の取引保証</h3>
+        <p class="text-gray-600 leading-relaxed">万が一のトラブルにも対応。安心して取引できる保証制度を完備しています。</p>
+      </div>
+      <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 text-center group">
+        <div class="w-16 h-16 flex items-center justify-center bg-red-100 rounded-full mx-auto mb-6 group-hover:bg-red-600 transition-colors duration-300">
+          <i class="ri-user-star-line text-3xl text-red-600 group-hover:text-white transition-colors duration-300" aria-hidden="true"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">信頼できる出品者</h3>
+        <p class="text-gray-600 leading-relaxed">評価システムで優良な出品者を見極められます。安心して購入できます。</p>
+      </div>
+      <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 text-center group">
+        <div class="w-16 h-16 flex items-center justify-center bg-red-100 rounded-full mx-auto mb-6 group-hover:bg-red-600 transition-colors duration-300">
+          <i class="ri-money-yen-circle-line text-3xl text-red-600 group-hover:text-white transition-colors duration-300" aria-hidden="true"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">手数料無料キャンペーン</h3>
+        <p class="text-gray-600 leading-relaxed">期間限定で出品手数料が無料。お得に野球用品を売買できます。</p>
+      </div>
+      <div class="bg-white p-8 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 text-center group">
+        <div class="w-16 h-16 flex items-center justify-center bg-red-100 rounded-full mx-auto mb-6 group-hover:bg-red-600 transition-colors duration-300">
+          <i class="ri-customer-service-2-line text-3xl text-red-600 group-hover:text-white transition-colors duration-300" aria-hidden="true"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-3">充実のサポート</h3>
+        <p class="text-gray-600 leading-relaxed">取引に関する疑問や不安があれば、専門スタッフが丁寧にサポートします。</p>
+      </div>
+    </div>
+
+    <div class="mt-16 bg-gradient-to-r from-red-600 to-orange-600 rounded-2xl p-12 text-white text-center">
+      <h2 class="text-3xl font-black mb-4">今すぐ始めよう</h2>
+      <p class="text-lg mb-8 text-white/90" sec:authorize="!isAuthenticated()">無料会員登録で、すぐに出品・購入が可能です</p>
+      <p class="text-lg mb-8 text-white/90" sec:authorize="isAuthenticated()">あなたの使わなくなった野球用品を、今すぐ出品できます</p>
+      <div class="flex flex-wrap gap-4 justify-center">
+        <a sec:authorize="!isAuthenticated()" th:href="@{/signup}"
+           class="px-8 py-4 bg-white text-red-600 font-bold rounded-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl whitespace-nowrap">
+          無料会員登録
+        </a>
+        <a sec:authorize="!isAuthenticated()" th:href="@{/login}"
+           class="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-lg hover:bg-white/10 transition-all duration-200 whitespace-nowrap">
+          ログイン
+        </a>
+        <a sec:authorize="isAuthenticated()" th:href="@{/registProduct}"
+           class="px-8 py-4 bg-white text-red-600 font-bold rounded-lg hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl whitespace-nowrap">
+          出品する
+        </a>
+        <a sec:authorize="isAuthenticated()" th:href="@{/mypage}"
+           class="px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-lg hover:bg-white/10 transition-all duration-200 whitespace-nowrap">
+          マイページ
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
 
 <footer th:replace="~{shared/layout :: footer}"></footer>
 </body>
