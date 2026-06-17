@@ -14,6 +14,10 @@
 --     旧 users は email に UNIQUE が無く id=7 と id=52 が同一メールだったが、id ベースの
 --     命名なので新スキーマの uk_users_email 制約に抵触しない。
 --   * email_verification_tokens は旧ダンプにデータが無いため投入しない。
+--   * 各テーブルの id 欠番・飛び（例: likes に id=3 が無い、products の id 不連続）は
+--     旧本番データの忠実な再現であり、データ欠落バグではない。
+--   * 本シード（db/seed）は dev プロファイル限定で読み込む（application-dev.properties）。
+--     本番のデフォルトは db/migration のみのため、本ファイルは本番では実行されない。
 --   * products id=237（UNDER ARMOUR スパイク）は旧ダンプ時点で pic1〜pic3 が
 --     存在しないファイル（5061db06…/654e59c8…/35df7466….jpeg）を指しており画像が
 --     404 になる旧データ不整合があった。開発シードでは pic1 を実在する

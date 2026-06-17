@@ -16,7 +16,7 @@
   - repeatable（`R__`）。先頭で対象テーブルを全削除 → 再投入（FK チェックは一時無効化）し、内容変更時に再実行されても重複キーにならない。
   - email/password は開発用に匿名化・統一（email は `user{id}@example.com`、password は全ユーザー共通の BCrypt ハッシュ）。
   - `email_verification_tokens` は旧ダンプにデータが無いため投入しない。
-- `application.properties` の `spring.flyway.locations` に `classpath:db/seed` を追加（dev のみ）。**本番（`application-prod`）では `db/migration` のみ**とし `db/seed` を含めない方針をコメントで明示。
+- **prod 安全性を「設定」で担保（fail-safe）**: デフォルトの `spring.flyway.locations` は `classpath:db/migration` のみ（全プロファイル共通・本番含む）。`db/seed` の追加は **dev プロファイル限定**（`application-dev.properties` で `classpath:db/migration,classpath:db/seed`）とし、`.devcontainer/docker-compose.yml` の `SPRING_PROFILES_ACTIVE=dev` で有効化する。本番デプロイは `--spring.profiles.active=prod` で起動するため db/seed は物理的に渡らない。コメント運用でなく設定で保証する。
 
 ### 2. 商品237の画像不整合の修正
 
@@ -65,6 +65,16 @@
 ### 3. コピーでなくリソースハンドラで配信
 
 dev 起動時に fixture を `static/uploads/` へコピーする案もあったが、(a) 実行レイアウト（exploded source / packaged jar）に依存して壊れやすい、(b) ディスク上に重複が出る、ため不採用。`/uploads/**` を 2 ロケーションから配信するリソースハンドラなら、環境差に強く重複も無い。本番 jar には `db/seed/uploads/` が同梱されるが（数 MB）、シード SQL 同様 prod では未使用で害は無いと判断。
+
+## コードレビュー対応（ddd-code-reviewer / PR #56）
+
+| 指摘 | 重大度 | 対応 |
+| --- | --- | --- |
+| prod での db/seed 除外がコメント運用依存（実体の prod 設定が無く、デフォルトに db/seed が含まれていた） | Warning(W-1) | **修正**: デフォルトを `db/migration` のみに変更し、`db/seed` は dev プロファイル限定（`application-dev.properties` + devcontainer の `SPRING_PROFILES_ACTIVE=dev`）へ。本番デフォルトが安全側に倒れる fail-safe 設計に |
+| 全 DELETE 方式が prod で走ると破壊的 | Warning(W-2) | W-1 解消により prod は db/seed を読まないためカバー |
+| id 欠番/飛びが欠落バグと誤認され得る | Suggestion(S-3) | シードヘッダに「旧本番データの忠実再現」と注記 |
+| 本番 jar への fixture 画像同梱 | Suggestion(S-2) | 現状許容。prod は seed SQL を実行せず DB に該当パス参照が無いため classpath フォールバックは無害なデッドウェイト。肥大化時に再評価 |
+| パストラバーサル懸念 | — | 指摘なし（Spring `PathResourceResolver` が location 外解決を既定で遮断） |
 
 ## 残課題・未確定
 

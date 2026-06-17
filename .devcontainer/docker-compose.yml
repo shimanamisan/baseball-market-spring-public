@@ -14,6 +14,11 @@ services:
     container_name: baseball-market-spring-app
     ports:
       - "8080:8080"
+    environment:
+      # 開発プロファイルを有効化。これにより application-dev.properties が読まれ、
+      # 開発用シード（db/seed）が flyway.locations に追加される。
+      # 本番デプロイは --spring.profiles.active=prod で起動するためこの値は渡らない。
+      - SPRING_PROFILES_ACTIVE=dev
     volumes:
       - ../:/app
     depends_on:
