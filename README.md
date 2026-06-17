@@ -43,14 +43,59 @@
 
 実装は t-wada 流の TDD（Red → Green → Refactor）で進め、各ユースケースは振る舞い単位のテストで仕様を表現しています。
 
+## 前提: edge-proxy-stack（エッジゲートウェイ）
+
+このプロジェクトは、リバースプロキシ基盤として [shimanamisan/edge-proxy-stack](https://github.com/shimanamisan/edge-proxy-stack) を併用することを前提にしています。
+
+edge-proxy-stack は **Nginx Proxy Manager（NPM）+ Portainer** を Docker Compose でまとめた家庭用サーバー向けのエッジゲートウェイで、次の役割を担います。
+
+- ポート 80 / 443 で外部トラフィックを受け、SSL を終端してバックエンドへ振り分ける
+- Let's Encrypt の SSL 証明書を Web UI から発行・更新する
+- Portainer による Docker コンテナの監視・管理
+
+両スタックは **`nginx-proxy-manager-network` という外部 Docker ネットワークを共有** することで連携します。本プロジェクトの `.devcontainer/docker-compose.yml` は、このネットワークを `external: true` として参照し、`app` / `db` / `mailhog` の各コンテナを参加させています。そのため、**本プロジェクトを起動する前に edge-proxy-stack 側でネットワークを作成しておく必要があります。**
+
+### edge-proxy-stack のセットアップ
+
+```bash
+# 1. リポジトリを取得
+git clone https://github.com/shimanamisan/edge-proxy-stack.git
+cd edge-proxy-stack
+
+# 2. 環境変数を用意（必要に応じてポート等を編集）
+cp env.example .env
+
+# 3. 共有ネットワークを作成
+chmod +x create-network.sh
+./create-network.sh
+# 手動の場合: docker network create nginx-proxy-manager-network
+
+# 4. NPM / Portainer を起動
+docker compose up -d
+```
+
+起動後、`http://<サーバー IP>:81` から NPM 管理画面にアクセスし、初期認証情報（`admin@example.com` / `changeme`）でログインのうえ、**速やかに資格情報を変更** してください。
+
+### このアプリへのルーティング
+
+NPM の管理画面で Proxy Host を追加し、本アプリのコンテナへ転送します。
+
+1. 「Proxy Hosts」→「Add Proxy Host」
+2. 公開ドメインを設定
+3. Forward Hostname / IP に `baseball-market-spring-app`、Forward Port に `8080` を指定（同一の `nginx-proxy-manager-network` 上でコンテナ名解決される）
+4. 「SSL」タブで「Request a new SSL Certificate」を有効化して Let's Encrypt 証明書を発行
+
+> ⚠️ edge-proxy-stack が未起動、または `nginx-proxy-manager-network` が未作成の状態で本プロジェクトの devcontainer / `docker compose` を起動すると、外部ネットワーク参照エラーで起動に失敗します。先に edge-proxy-stack を立ち上げてください。
+
 ## 動かし方
 
 Dev Container を前提にしています。
 
-1. VS Code に Dev Containers 拡張機能を入れる
-2. このリポジトリをクローンして VS Code で開く
-3. コマンドパレットから「Reopen in Container」を実行
-4. コンテナ起動後、Java 開発環境と MySQL が利用可能になる
+1. 上記「前提: edge-proxy-stack」の手順で `nginx-proxy-manager-network` を作成しておく
+2. VS Code に Dev Containers 拡張機能を入れる
+3. このリポジトリをクローンして VS Code で開く
+4. コマンドパレットから「Reopen in Container」を実行
+5. コンテナ起動後、Java 開発環境と MySQL が利用可能になる
 
 ```bash
 ./gradlew :app:bootRun   # アプリ起動
