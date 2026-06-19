@@ -29,3 +29,14 @@ build/
 
 # Claude Code（個人用ローカル設定は追跡しない）
 .claude/settings.local.json
+
+# 開発用 DB シードの元データ（旧 baseball-market の本番相当ダンプ＋画像）。
+# 開発環境ローカル専用のため追跡しない。リポジトリにコミットするシードは
+# db/seed/*.sql（と画像はシード fixture の正規置き場 db/seed/uploads/）側で管理する。
+_docs/database/
+
+# ランタイムのユーザーアップロード保存先（app.uploads.path）。
+# 環境ごとに増える実アップロードは追跡しない。ディレクトリ自体は .gitkeep で残す。
+# シードが参照する fixture 画像は db/seed/uploads/ にコミットしている。
+app/src/main/resources/static/uploads/*
+!app/src/main/resources/static/uploads/.gitkeep
