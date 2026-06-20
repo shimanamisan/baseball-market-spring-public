@@ -22,11 +22,16 @@ public class WebConfig implements WebMvcConfigurer {
   private final String uploadsPath;
 
   public WebConfig(@Value("${app.uploads.path}") String uploadsPath) {
-    this.uploadsPath = uploadsPath;
+    // 空文字だと "file:/" となりサーバのルート全体が /uploads/** で露出するため拒否。
+    // あわせて末尾スラッシュを正規化し、設定値の有無で // にならないようにする。
+    if (uploadsPath == null || uploadsPath.isBlank()) {
+      throw new IllegalArgumentException("app.uploads.path must not be blank");
+    }
+    this.uploadsPath = uploadsPath.endsWith("/") ? uploadsPath : uploadsPath + "/";
   }
 
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry.addResourceHandler("/uploads/**").addResourceLocations("file:" + uploadsPath + "/");
+    registry.addResourceHandler("/uploads/**").addResourceLocations("file:" + uploadsPath);
   }
 }
