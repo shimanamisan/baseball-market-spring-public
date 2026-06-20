@@ -25,13 +25,16 @@ public class SeedImageWebConfig implements WebMvcConfigurer {
   private final String seedImagesPath;
 
   public SeedImageWebConfig(@Value("${app.seed.images.path}") String seedImagesPath) {
-    this.seedImagesPath = seedImagesPath;
+    // 空文字だと "file:/" となりサーバのルート全体が /seed-images/** で露出するため拒否（dev 限定 Bean だが堅牢化）。
+    // あわせて末尾スラッシュを正規化し、設定値の有無で // にならないようにする。
+    if (seedImagesPath == null || seedImagesPath.isBlank()) {
+      throw new IllegalArgumentException("app.seed.images.path must not be blank");
+    }
+    this.seedImagesPath = seedImagesPath.endsWith("/") ? seedImagesPath : seedImagesPath + "/";
   }
 
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry
-        .addResourceHandler("/seed-images/**")
-        .addResourceLocations("file:" + seedImagesPath + "/");
+    registry.addResourceHandler("/seed-images/**").addResourceLocations("file:" + seedImagesPath);
   }
 }
