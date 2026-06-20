@@ -25,11 +25,15 @@ app.uploads.path=${APP_UPLOADS_PATH:/app/app/src/main/resources/static/uploads}
 ```
 - 本番既定（`/var/lib/...`）は devcontainer に存在しないため、dev は従来どおりリポジトリ内 `static/uploads` を指す（挙動不変）。`APP_UPLOADS_PATH` 指定時はそちらを優先。
 
-### 3. `app/src/test/resources/application.properties`（新規・テスト専用）
-```properties
-app.uploads.path=${java.io.tmpdir}/baseball-market-test-uploads
+### 3. `app/build.gradle`（test タスクで app.uploads.path を上書き）
+```gradle
+tasks.named('test') {
+	useJUnitPlatform()
+	systemProperty 'app.uploads.path', "${System.getProperty('java.io.tmpdir')}/baseball-market-test-uploads"
+}
 ```
-- `ImageStorage` はコンストラクタで `createDirectories` するため、dev プロファイル無しのテスト（CI・devcontainer 外）で既定 `/var/lib/...` を作れず `@SpringBootTest` の context 生成が失敗する潜在リスクを回避。環境非依存に書き込める tmpdir を使う。
+- `ImageStorage` はコンストラクタで `createDirectories` するため、テストで既定 `/var/lib/...` を作れず `@SpringBootTest` の context 生成が失敗する。テストは環境非依存に書き込める tmpdir を使う。
+- **当初 `src/test/resources/application.properties` で上書きしたが、これは main の `application.properties` を classpath 上で丸ごとシャドーし `spring.datasource.url` ごと消すため contextLoads が `Failed to determine a suitable driver class` で失敗した**。system property 方式なら application.properties をシャドーせず最優先で上書きするため、datasource 等の main 設定はそのまま有効になる。
 
 ## 検証
 
