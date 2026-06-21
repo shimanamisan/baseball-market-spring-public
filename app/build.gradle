@@ -36,4 +36,10 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// ランタイムアップロード先をテスト用に上書きする。
+	// 本番既定（application.properties の /var/lib/baseball-market/uploads）は
+	// テスト実行環境に書込権限が無く、ImageStorage の createDirectories が起動時に失敗するため。
+	// system property は application.properties をシャドーせず最優先で上書きするので、
+	// datasource 等の main 設定はそのまま有効になる。
+	systemProperty 'app.uploads.path', "${System.getProperty('java.io.tmpdir')}/baseball-market-test-uploads"
 }
