@@ -27,7 +27,8 @@ APP_CONTAINER="baseball-market-spring-app"
 # ============================================================================
 # 1. デプロイディレクトリの準備
 # ============================================================================
-DEPLOY_DIR="/home/$(whoami)/deploy/baseball-market-spring"
+# $HOME を使い、外部から DEPLOY_DIR で上書き可能にする（root 等 /home 配下でないユーザーにも対応）。
+DEPLOY_DIR="${DEPLOY_DIR:-$HOME/deploy/baseball-market-spring}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROD_DIR="$SCRIPT_DIR/../prod"
 
@@ -63,9 +64,10 @@ fi
 log_info "Pulling latest images ..."
 docker compose pull
 
-log_info "Restarting containers ..."
-docker compose down --remove-orphans
-docker compose up -d
+# down せず up -d で差分のみ再作成する。変更のあったコンテナ（新 app イメージ等）だけが
+# 再作成され、db は再起動されないためダウンタイムと不要な DB 再起動を避けられる。
+log_info "Recreating changed containers ..."
+docker compose up -d --remove-orphans
 
 # ============================================================================
 # 5. app の healthy 待機（Flyway 適用完了 + DB 健全性を含む）
@@ -74,19 +76,33 @@ log_info "Waiting for ${APP_CONTAINER} to become healthy ..."
 MAX_WAIT=40   # 40 * 5s = 最大 200 秒
 n=0
 while true; do
-  status="$(docker inspect -f '{{.State.Health.Status}}' "$APP_CONTAINER" 2>/dev/null || echo "starting")"
-  if [ "$status" = "healthy" ]; then
-    log_success "${APP_CONTAINER} is healthy"
-    break
-  fi
-  n=$((n + 1))
-  if [ "$n" -ge "$MAX_WAIT" ]; then
-    log_error "${APP_CONTAINER} did not become healthy in time (status=$status)"
+  # コンテナの稼働状態とヘルス状態を同時に取得する。
+  read -r cstatus hstatus <<< "$(docker inspect \
+    -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
+    "$APP_CONTAINER" 2>/dev/null || echo 'missing none')"
+
+  # running でない（exited / restarting / dead / missing）なら起動失敗とみなし即座に fail-fast。
+  # restart: unless-stopped によりクラッシュ時は restarting を繰り返すため、200 秒待たずに失敗を返す。
+  if [ "$cstatus" != "running" ]; then
+    log_error "${APP_CONTAINER} is not running (status=$cstatus). Startup likely failed."
     docker compose ps
     docker compose logs --tail=80 app
     exit 1
   fi
-  log_info "  ... status=$status ($n/$MAX_WAIT)"
+
+  if [ "$hstatus" = "healthy" ]; then
+    log_success "${APP_CONTAINER} is healthy"
+    break
+  fi
+
+  n=$((n + 1))
+  if [ "$n" -ge "$MAX_WAIT" ]; then
+    log_error "${APP_CONTAINER} did not become healthy in time (health=$hstatus)"
+    docker compose ps
+    docker compose logs --tail=80 app
+    exit 1
+  fi
+  log_info "  ... status=$cstatus health=$hstatus ($n/$MAX_WAIT)"
   sleep 5
 done
 

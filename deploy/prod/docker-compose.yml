@@ -83,9 +83,10 @@ services:
     profiles:
       - tools
     environment:
+      # 公式 phpmyadmin イメージは MYSQL_ROOT_PASSWORD を使用しない（PMA_* を使う）。
+      # 未使用の root パスワードを env に渡さない（docker inspect 等での機密露出を避ける）。
       PMA_HOST: baseball-market-spring-db
       PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "127.0.0.1:8091:80"
     depends_on:
