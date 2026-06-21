@@ -1,0 +1,97 @@
+# 本番スタック（app + db）。ghcr.io のイメージを pull して起動する。
+# 公開するのは app のみ（NPM 経由）。db は内部ネットワークに隔離し共有ネットワークに晒さない。
+# Flyway がアプリ起動時にマイグレーションを自動適用するため、別途 migrate コマンドは不要。
+name: baseball-market-spring
+
+networks:
+  # NPM がリバースプロキシ（TLS 終端）するための外部共有ネットワーク。app のみ参加する。
+  nginx-proxy-manager-network:
+    external: true
+  # app <-> db の内部通信用。internal: true で外部到達を遮断し db を隔離する。
+  internal:
+    driver: bridge
+    internal: true
+
+volumes:
+  db-store:
+    name: baseball-market-spring-db-store
+  uploads:
+    name: baseball-market-spring-uploads
+
+services:
+  app:
+    image: ${REGISTRY_URL}/app:${IMAGE_TAG:-latest}
+    container_name: baseball-market-spring-app
+    # .env を実行時環境へ注入（DB_*/MAIL_*/APP_URL/REMEMBER_ME_KEY 等）。
+    env_file:
+      - .env
+    environment:
+      # プロファイルは .env に依存させず明示的に prod を強制する。
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: ${TZ:-Asia/Tokyo}
+    volumes:
+      # ユーザーアップロードを永続化（イメージ内 spring 所有のため named volume も spring 所有を継承）。
+      - uploads:${APP_UPLOADS_PATH:-/var/lib/baseball-market/uploads}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      # actuator の health（DB 健全性＝Flyway 完了を含む）。curl はイメージに同梱済み。
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    expose:
+      - "8080"
+    networks:
+      - nginx-proxy-manager-network
+      - internal
+
+  db:
+    image: mysql:8.0
+    container_name: baseball-market-spring-db
+    env_file:
+      - .env
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: ${TZ:-Asia/Tokyo}
+    volumes:
+      - db-store:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - internal
+
+  # DB 管理 GUI（任意・必要時のみ起動）。
+  #   起動: docker compose --profile tools up -d phpmyadmin
+  # localhost のみにバインドし外部公開しない。手元からは SSH トンネル経由でアクセスする:
+  #   ssh -L 8091:localhost:8091 <server>  → ブラウザで http://localhost:8091
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: baseball-market-spring-phpmyadmin
+    profiles:
+      - tools
+    environment:
+      # 公式 phpmyadmin イメージは MYSQL_ROOT_PASSWORD を使用しない（PMA_* を使う）。
+      # 未使用の root パスワードを env に渡さない（docker inspect 等での機密露出を避ける）。
+      PMA_HOST: baseball-market-spring-db
+      PMA_PORT: 3306
+    ports:
+      - "127.0.0.1:8091:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
