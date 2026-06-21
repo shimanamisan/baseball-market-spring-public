@@ -10,9 +10,9 @@
 
 ### 1. `Dockerfile`（リポジトリ直下・本番用・マルチステージ）
 - **Stage1（build）**: `eclipse-temurin:21-jdk` で `app/` の `bootJar` を生成。wrapper / ビルド定義（`gradlew` / `settings.gradle` / `build.gradle` / `gradle/`）を先にコピーして依存解決を Docker レイヤキャッシュに乗せ、ソース変更時の再ビルドを高速化。テストは CI で別途実行するため `-x test`
-- **Stage2（runtime）**: `eclipse-temurin:21-jre` で**非 root**（`spring` uid=999）実行
+- **Stage2（runtime）**: `eclipse-temurin:21-jre` で**非 root**（`spring` ユーザー）実行
   - `useradd --create-home --home-dir /app` で `/app` をユーザー所有で作成
-  - compose / NPM のヘルスチェック用に `curl` を導入
+  - compose / Nginx Proxy Manager (NPM) のヘルスチェック用に `curl` を導入
   - `APP_UPLOADS_PATH` 既定先（`/var/lib/baseball-market/uploads`）を所有権付きで用意（本番は外部ボリュームをここにマウント）
   - `COPY --chown=spring:spring` で jar を実行ユーザー所有でコピー
   - プロファイルは compose の `SPRING_PROFILES_ACTIVE`、JVM opts は `JDK_JAVA_OPTIONS` で注入（`ENTRYPOINT` は exec 形式でシグナル伝播を維持）
@@ -27,7 +27,7 @@
 | --- | --- |
 | イメージビルド | `docker build` 成功（bootJar 約 20s） |
 | コンテナ起動 | prod プロファイルで `/actuator/health` が 200 `{"status":"UP"}` |
-| 非 root 実行 | `uid=999(spring)`。`/app`・`/app/app.jar` ともに `spring:spring` 所有 |
+| 非 root 実行 | `spring` ユーザー（非root・`useradd --system` のシステム割当 UID で固定はしない）。`/app`・`/app/app.jar` ともに `spring:spring` 所有 |
 | Flyway 適用 | `db/migration` のみを 0 から適用。dev シードはイメージに含まれず実行されない |
 | uploads 既定先 | 非 root で書込み可能（起動時 `ImageStorage` の `createDirectories` がエラーなし） |
 | plain jar 衝突 | `bootJar` のみ実行のため `build/libs` は jar 1 つ。ワイルドカード COPY は単一解決し成功 |

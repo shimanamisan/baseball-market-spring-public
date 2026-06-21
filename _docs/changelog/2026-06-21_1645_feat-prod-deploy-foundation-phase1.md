@@ -12,7 +12,7 @@
 `SPRING_PROFILES_ACTIVE=prod` で有効化。秘匿値は直書きせず環境変数（`.env` / `PRODUCTION_ENV`）から注入する。
 - DB / メール接続を env 注入（`${DB_*}` / `${MAIL_*}`）。DB host は旧 baseball-market の MySQL との alias 衝突を避けコンテナ名固定を前提
 - 本番トグル: `show-sql=false` / `open-in-view=false` / `thymeleaf.cache=true`
-- NPM(TLS終端)配下のため `forward-headers-strategy=native` + Secure Cookie
+- Nginx Proxy Manager（NPM、TLS終端）配下のため `forward-headers-strategy=native` + Secure Cookie
 - `app.url` を env 注入（メール認証リンクの生成元のため本番 https ドメイン必須）
 
 ### 2. Actuator ヘルスチェック
