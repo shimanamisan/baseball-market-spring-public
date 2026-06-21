@@ -41,7 +41,8 @@ deploy/
    nano ~/deploy/baseball-market-spring/.env
    ```
    GitHub Actions からデプロイする場合は、`.env` を base64 化して Secret `PRODUCTION_ENV`
-   に登録する（`base64 -w0 .env`）。ワークフローが runner 上で復号・配置する。
+   に登録する（Linux: `base64 -w0 .env` / 共通: `openssl base64 -A -in .env`）。
+   ワークフローが runner 上で復号・配置する。
 
 2. ghcr.io が private パッケージなら docker login（public なら不要）。
    ```bash
@@ -74,7 +75,7 @@ deploy (self-hosted, run_deploy=true のとき)
 
 | Secret | 必須 | 用途 |
 | --- | --- | --- |
-| `PRODUCTION_ENV` | ○ | 本番 `.env` を base64 化した値（`base64 -w0 .env`）。runner 上で復号・配置 |
+| `PRODUCTION_ENV` | ○ | 本番 `.env` の base64（Linux: `base64 -w0 .env` / macOS: `base64 -b 0 < .env` / 共通: `openssl base64 -A -in .env`）。runner 上で復号・配置 |
 | `GHCR_TOKEN` | private パッケージ時のみ | deploy.sh の ghcr ログイン用 PAT |
 | `GHCR_USERNAME` | private パッケージ時のみ | 同上のユーザー名 |
 
