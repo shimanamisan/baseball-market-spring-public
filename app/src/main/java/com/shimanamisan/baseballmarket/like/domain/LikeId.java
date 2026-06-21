@@ -1,6 +1,6 @@
 package com.shimanamisan.baseballmarket.like.domain;
 
-public record LikeId(long value) {
+public record LikeId(int value) {
 
   public LikeId {
     if (value < 0) {
@@ -8,7 +8,7 @@ public record LikeId(long value) {
     }
   }
 
-  public static LikeId fromLong(long value) {
+  public static LikeId fromInt(int value) {
     return new LikeId(value);
   }
 

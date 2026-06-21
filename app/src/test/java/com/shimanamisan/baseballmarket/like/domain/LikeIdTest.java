@@ -11,7 +11,7 @@ class LikeIdTest {
   @Test
   @DisplayName("正の整数から生成できる")
   void createsFromPositive() {
-    LikeId id = LikeId.fromLong(5);
+    LikeId id = LikeId.fromInt(5);
 
     assertThat(id.value()).isEqualTo(5);
   }
@@ -28,7 +28,7 @@ class LikeIdTest {
   @Test
   @DisplayName("負の値は拒否する")
   void rejectsNegative() {
-    assertThatThrownBy(() -> LikeId.fromLong(-1))
+    assertThatThrownBy(() -> LikeId.fromInt(-1))
         .isInstanceOf(IllegalArgumentException.class);
   }
 }
