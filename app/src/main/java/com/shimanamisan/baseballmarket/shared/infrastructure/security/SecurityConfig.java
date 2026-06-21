@@ -1,6 +1,7 @@
 package com.shimanamisan.baseballmarket.shared.infrastructure.security;
 
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -28,7 +29,17 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   private static final Duration REMEMBER_ME_VALIDITY = Duration.ofDays(30);
-  private static final String REMEMBER_ME_KEY = "baseball-market-remember-me";
+
+  /**
+   * remember-me トークンの署名キー。本リポジトリは public ミラーへ公開されるため
+   * キーをコミットすると本番の署名キーが露出する。よって外部化し、本番は環境変数
+   * （REMEMBER_ME_KEY / PRODUCTION_ENV）から注入する。dev/test は base の dev 既定値を使う。
+   */
+  private final String rememberMeKey;
+
+  public SecurityConfig(@Value("${app.remember-me.key}") String rememberMeKey) {
+    this.rememberMeKey = rememberMeKey;
+  }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -59,6 +70,9 @@ public class SecurityConfig {
                 "/uploads/**",
                 "/seed-images/**",
                 "/assets/**",
+                // 本番ヘルスチェック用（Docker / NPM / deploy.sh が無認証で疎通確認する）。
+                // sub-path（/actuator/health/{component} 等）は最小権限のため許可しない。
+                "/actuator/health",
                 "/error"
             ).permitAll()
             .anyRequest().authenticated()
@@ -80,7 +94,7 @@ public class SecurityConfig {
             .permitAll()
         )
         .rememberMe(rm -> rm
-            .key(REMEMBER_ME_KEY)
+            .key(rememberMeKey)
             .tokenValiditySeconds((int) REMEMBER_ME_VALIDITY.toSeconds())
             .rememberMeParameter("remember-me")
         )
