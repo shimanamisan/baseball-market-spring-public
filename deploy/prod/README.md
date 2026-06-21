@@ -41,7 +41,8 @@ deploy/
    nano ~/deploy/baseball-market-spring/.env
    ```
    GitHub Actions からデプロイする場合は、`.env` を base64 化して Secret `PRODUCTION_ENV`
-   に登録する（`base64 -w0 .env`）。ワークフローが runner 上で復号・配置する。
+   に登録する（Linux: `base64 -w0 .env` / 共通: `openssl base64 -A -in .env`）。
+   ワークフローが runner 上で復号・配置する。
 
 2. ghcr.io が private パッケージなら docker login（public なら不要）。
    ```bash
@@ -56,6 +57,31 @@ deploy/
 4. NPM で Proxy Host を作成（Forward Hostname/IP: `baseball-market-spring-app` / Port: `8080`、
    SSL は Let's Encrypt）。`APP_URL` はこの公開ドメインと一致させる
    （メール認証リンクの生成元になるため）。
+
+## GitHub Actions（手動デプロイ）
+
+ワークフロー `.github/workflows/deploy-production.yml` を **手動トリガー**で実行する
+（Actions タブ → Deploy to Production → Run workflow）。`run_deploy=false` にすると
+イメージの build/push のみ（デプロイは行わない）。
+
+```
+build-and-push (ubuntu-latest)
+  → ghcr.io/<owner>/baseball-market-spring/app を build & push（latest / timestamp / sha）
+deploy (self-hosted, run_deploy=true のとき)
+  → PRODUCTION_ENV から .env を生成 → deploy/scripts/deploy.sh 実行
+```
+
+### 必要な GitHub Secrets
+
+| Secret | 必須 | 用途 |
+| --- | --- | --- |
+| `PRODUCTION_ENV` | ○ | 本番 `.env` の base64（Linux: `base64 -w0 .env` / macOS: `base64 -b 0 < .env` / 共通: `openssl base64 -A -in .env`）。runner 上で復号・配置 |
+| `GHCR_TOKEN` | private パッケージ時のみ | deploy.sh の ghcr ログイン用 PAT |
+| `GHCR_USERNAME` | private パッケージ時のみ | 同上のユーザー名 |
+
+- イメージの **push** は自動付与の `GITHUB_TOKEN`（`packages: write`）で足り、手動 Secret は不要。
+- `PRODUCTION_ENV` 未設定でも、本番サーバーの `~/deploy/baseball-market-spring/.env` が
+  既にあればそれを使う（フォールバック）。
 
 ## 運用
 
