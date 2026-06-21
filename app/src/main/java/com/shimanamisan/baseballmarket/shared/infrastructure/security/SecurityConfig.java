@@ -59,9 +59,9 @@ public class SecurityConfig {
                 "/uploads/**",
                 "/seed-images/**",
                 "/assets/**",
-                // 本番ヘルスチェック用（Docker / NPM / deploy.sh が無認証で疎通確認する）
+                // 本番ヘルスチェック用（Docker / NPM / deploy.sh が無認証で疎通確認する）。
+                // sub-path（/actuator/health/{component} 等）は最小権限のため許可しない。
                 "/actuator/health",
-                "/actuator/health/**",
                 "/error"
             ).permitAll()
             .anyRequest().authenticated()
