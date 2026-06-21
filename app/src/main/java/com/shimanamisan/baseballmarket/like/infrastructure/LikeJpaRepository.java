@@ -11,7 +11,7 @@ interface LikeJpaRepository extends JpaRepository<Like, Integer> {
 
   boolean existsByUserIdAndProductId(Integer userId, Integer productId);
 
-  @Modifying
+  @Modifying(clearAutomatically = true)
   @Query("delete from Like l where l.userId = :userId and l.productId = :productId")
   void deleteByUserIdAndProductId(@Param("userId") Integer userId, @Param("productId") Integer productId);
 
