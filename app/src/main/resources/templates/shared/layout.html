@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="_csrf" th:content="${_csrf.token}">
   <meta name="_csrf_header" th:content="${_csrf.headerName}">
-  <title th:text="|${siteTitle ?: '野球マーケット'}｜ BASEBALL MARKET|">BASEBALL MARKET</title>
+  <title th:text="|${siteTitle ?: 'Baseball Market'}｜ BASEBALL MARKET|">BASEBALL MARKET</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -22,7 +22,7 @@
         <div class="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-red-600 to-red-700 rounded-xl">
           <i class="ri-baseball-line text-2xl text-white"></i>
         </div>
-        <span class="text-2xl font-bold text-gray-900">野球マーケット</span>
+        <span class="text-2xl font-bold text-gray-900">Baseball Market</span>
       </a>
       <nav class="hidden md:flex items-center gap-4">
         <a sec:authorize="!isAuthenticated()" th:href="@{/signup}" class="px-5 py-2.5 border-2 border-gray-300 hover:border-red-600 text-gray-700 hover:text-red-600 font-semibold rounded-lg">ユーザー登録</a>
@@ -45,8 +45,7 @@
             <i class="ri-baseball-line text-2xl text-white" aria-hidden="true"></i>
           </div>
           <div>
-            <h3 class="text-xl font-black">野球マーケット</h3>
-            <p class="text-xs text-gray-400">Baseball Market</p>
+            <h3 class="text-xl font-black">Baseball Market</h3>
           </div>
         </div>
         <p class="text-gray-400 leading-relaxed mb-6">
@@ -103,7 +102,7 @@
     </div>
 
     <div class="border-t border-gray-700 pt-8">
-      <p class="text-gray-400 text-sm text-center">© 2026 野球マーケット. All rights reserved.</p>
+      <p class="text-gray-400 text-sm text-center">© 2026 Baseball Market. All rights reserved.</p>
     </div>
   </div>
 </footer>

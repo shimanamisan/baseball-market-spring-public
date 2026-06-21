@@ -12,7 +12,7 @@
 <body class="bg-white min-h-screen" style="font-family: 'Noto Sans JP', sans-serif;">
   <header th:replace="~{shared/layout :: header}"></header>
   <main class="max-w-4xl mx-auto px-6 py-16">
-    <h1 class="text-3xl font-bold text-gray-900 mb-4">野球マーケット</h1>
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Baseball Market</h1>
     <p class="text-gray-600" sec:authorize="isAuthenticated()">
       ログイン中: <span th:text="${#authentication.name}"></span>
     </p>
