@@ -26,15 +26,20 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 非 root 実行ユーザー。
-RUN groupadd --system spring && useradd --system --gid spring --home /app spring
+# 非 root 実行ユーザー。--create-home で /app をこのユーザー所有で作成する
+# （--create-home が無いと WORKDIR が /app を root 所有で自動作成してしまう）。
+RUN groupadd --system spring \
+    && useradd --system --gid spring --create-home --home-dir /app spring
 WORKDIR /app
 
 # ユーザーアップロードの保存先（APP_UPLOADS_PATH 既定値）。本番は外部ボリュームをここに
 # マウントする。ディレクトリと所有権を用意しておく（ImageStorage が起動時に書込む）。
 RUN mkdir -p /var/lib/baseball-market/uploads && chown -R spring:spring /var/lib/baseball-market
 
-COPY --from=build /workspace/app/build/libs/baseball-market-spring-*.jar app.jar
+# bootJar のみを実行するため build/libs の jar は 1 つ（plain jar は jar/assemble/build
+# タスクが生成するもので、ここでは実行しないためワイルドカードは単一ファイルに解決する）。
+# 実行ユーザー所有でコピーする。
+COPY --chown=spring:spring --from=build /workspace/app/build/libs/baseball-market-spring-*.jar app.jar
 
 USER spring
 EXPOSE 8080
