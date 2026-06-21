@@ -59,6 +59,9 @@ public class SecurityConfig {
                 "/uploads/**",
                 "/seed-images/**",
                 "/assets/**",
+                // 本番ヘルスチェック用（Docker / NPM / deploy.sh が無認証で疎通確認する）
+                "/actuator/health",
+                "/actuator/health/**",
                 "/error"
             ).permitAll()
             .anyRequest().authenticated()
