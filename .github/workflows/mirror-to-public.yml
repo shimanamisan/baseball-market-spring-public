@@ -21,6 +21,10 @@ jobs:
           # このワークフロー自身は公開リポジトリには不要（公開側で再実行されると
           # PUBLIC_REPO_TOKEN が無いため必ず失敗し、ミラー運用情報も露出するため除外）
           rm -f .github/workflows/mirror-to-public.yml
+          # 本番デプロイ用ワークフローも公開リポジトリ（ポートフォリオ用途）には不要。
+          # 公開側へ workflow ファイルを作成/更新すると PUBLIC_REPO_TOKEN に workflow
+          # スコープが要求されるため、最小権限維持のためミラー対象から除外する
+          rm -f .github/workflows/deploy-production.yml
           # 個人用ローカル設定（万一追跡されていた場合の保険）
           rm -f .claude/settings.local.json
           echo "*.local" >> .gitignore
