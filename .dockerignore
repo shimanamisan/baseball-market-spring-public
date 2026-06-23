@@ -1,0 +1,35 @@
+# 本番イメージのビルドコンテキストから除外する。
+# Dockerfile が COPY するのは app/{gradlew,settings.gradle,build.gradle,gradle,src} のみ。
+
+# Git
+.git
+.gitignore
+
+# Gradle のビルド成果物・キャッシュ（イメージ内で再生成する）
+**/build
+**/.gradle
+
+# 開発環境 / IDE
+.devcontainer
+.vscode
+.idea
+
+# ドキュメント・非ビルド資材
+_docs
+*.md
+LICENSE
+
+# デプロイ資材・CI（イメージビルドには不要）
+deploy
+.github
+
+# 開発専用シード（本番では Flyway locations に含めず実行されない）。
+# 匿名化済みとはいえ legacy データ・画像を本番イメージに焼き込まない。
+app/seed-data
+app/src/main/resources/db/seed
+
+# 開発時のローカルアップロード（本番は外部ボリュームを使う）
+app/src/main/resources/static/uploads
+
+# OS
+.DS_Store

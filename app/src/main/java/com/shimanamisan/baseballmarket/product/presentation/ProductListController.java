@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class ProductListController {
 
-  private static final int PER_PAGE = 20;
+  // 商品グリッドは lg:grid-cols-3（デスクトップ 3 カラム）のため、
+  // 3 で割り切れる件数にして最終行の隙間（カードが欠けて見える状態）を防ぐ
+  private static final int PER_PAGE = 21;
 
   private final ProductService productService;
 
