@@ -28,7 +28,7 @@
    - 画像実体を本番 uploads volume の**直下にフラット配置**（`WebConfig` は `/uploads/**` を `file:${app.uploads.path}/` からフラット解決する。サブディレクトリにしない）
 3. **ユーザーの認証情報は匿名化済み**。本番にはデモアカウントとして載る。共通パスワードでログイン可。
 
-現状の dev データでは、商品画像 22 ファイル（`app/seed-data/images/`、DB 値は全て `seed-images/` プレフィックス）が対象。runtime uploads（`app/src/main/resources/static/uploads/`）は空（`.gitkeep` のみ）。
+現状の dev データでは、商品画像 21 ファイル（`app/seed-data/images/`、DB 値は全て `seed-images/` プレフィックス）が対象で、**DB 参照 21 ＝ 実体 21 で 1:1 一致**（リンク切れ・余剰なし）。runtime uploads（`app/src/main/resources/static/uploads/`）は空（`.gitkeep` のみ）。
 
 ## 追加物
 
@@ -37,9 +37,15 @@
 2 サブコマンド構成。
 
 - **`export`**（dev 機で実行）: dev DB を data-only でダンプし、`seed-images/`→`uploads/` 正規化＋ FK チェック無効ラッパーを付けて `bb_market_data.sql` を出力。画像を `uploads.tar.gz`（volume 直下用にフラット集約）として出力。既定の出力先は `./migration-out/`。
-- **`import`**（本番サーバーで実行）: ダンプを本番 DB コンテナへ投入し、画像を uploads volume 直下へ展開（`chmod -R a+rX` で配信に必要な読み取り権限を付与）。本番 root パスワードはデプロイ済み `.env` の `MYSQL_ROOT_PASSWORD` から取得。`--fresh` で対象テーブルを TRUNCATE してから入れ直し可能。
+- **`import`**（本番サーバーで実行）: ダンプを本番 DB コンテナへ投入し、画像を稼働中の app コンテナの `APP_UPLOADS_PATH` 直下へ `docker cp` で配置（`chmod -R a+rX` で配信に必要な読み取り権限を付与）。本番 root パスワードはデプロイ済み `.env` の `MYSQL_ROOT_PASSWORD` から取得。`--fresh` で対象テーブルを TRUNCATE してから入れ直し可能。
 
 投入テーブルは FK 依存順（`categories, makers, users, user_profiles, products, email_verification_tokens, boards, messages, likes`）。import は `FOREIGN_KEY_CHECKS=0` で囲むため順序非依存だが可読性のため依存順で列挙。
+
+### セキュリティ・堅牢性（PR #77 の Gemini レビュー反映）
+
+- **DB パスワードを `ps` に晒さない**: `mysql`/`mysqldump` に `-p<password>` を渡さず `MYSQL_PWD` 環境変数で渡す。さらに値を直書きする `docker exec -e VAR=value` だと **host の `ps` に値が露出する**（実機検証で確認）ため、コマンド前置の環境変数代入 + 値なし `-e MYSQL_PWD`（passthrough）で host argv からも秘匿する。
+- **`.env` のクォート除去**: `MYSQL_ROOT_PASSWORD` / `APP_UPLOADS_PATH` を `.env` から取り出す際、値が `"..."` / `'...'` で囲まれていても認証/パス不整合にならないよう前後クォートを除去（docker compose の env_file 挙動と整合）。
+- **画像展開で新規 image を pull しない**: named volume への書き込みにレジストリから `alpine` 等を pull すると、レジストリ制限/オフライン環境で中断しうる。host で展開した画像を、uploads volume を既にマウントしている稼働中の app コンテナへ `docker cp` で流し込む方式に変更（追加 image 不要）。
 
 ### `.gitignore`
 
@@ -71,8 +77,8 @@ bash deploy/scripts/migrate-dev-data.sh import ~/migration-in --fresh
 | `DEV_DB_CONTAINER` | `baseball-market-spring-db` | export: dev DB コンテナ名 |
 | `DEV_DB_ROOT_PASSWORD` | `rootpassword` | export: dev DB root パスワード |
 | `PROD_DB_CONTAINER` | `baseball-market-spring-db` | import: 本番 DB コンテナ名 |
-| `UPLOADS_VOLUME` | `baseball-market-spring-uploads` | import: 画像 volume 名 |
-| `DEPLOY_DIR` | `$HOME/deploy/baseball-market-spring` | import: `.env` 取得元 |
+| `PROD_APP_CONTAINER` | `baseball-market-spring-app` | import: 画像配置先の app コンテナ名（uploads volume をマウント） |
+| `DEPLOY_DIR` | `$HOME/deploy/baseball-market-spring` | import: `.env`（DB パスワード・`APP_UPLOADS_PATH`）取得元 |
 
 ## 検証
 

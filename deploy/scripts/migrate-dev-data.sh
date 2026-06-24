@@ -89,8 +89,11 @@ cmd_export() {
     echo "-- baseball-market-spring 開発データ移行用ダンプ（data-only / パス正規化済み）"
     echo "SET FOREIGN_KEY_CHECKS=0;"
     echo "SET UNIQUE_CHECKS=0;"
-    docker exec "$dev_container" mysqldump \
-      -u root -p"$dev_root_pw" \
+    # パスワードはコマンドライン引数（-p）に置かず MYSQL_PWD で渡す。さらに値を直書きする
+    # `docker exec -e VAR=value` だと host の `ps` に値が露出するため、コマンド前置の環境変数
+    # 代入 + 値なし `-e MYSQL_PWD`（passthrough）で host argv からも秘匿する。
+    MYSQL_PWD="$dev_root_pw" docker exec -e MYSQL_PWD "$dev_container" mysqldump \
+      -u root \
       --no-create-info --complete-insert --single-transaction \
       --skip-triggers --no-tablespaces --skip-comments \
       "$DB_NAME" "${TABLES[@]}" \
@@ -132,13 +135,13 @@ cmd_import() {
   local in_dir="${1:?使い方: import <入力ディレクトリ> [--fresh]}"
   local fresh="${2:-}"
   local prod_container="${PROD_DB_CONTAINER:-baseball-market-spring-db}"
+  local app_container="${PROD_APP_CONTAINER:-baseball-market-spring-app}"
   local deploy_dir="${DEPLOY_DIR:-$HOME/deploy/baseball-market-spring}"
-  local uploads_volume="${UPLOADS_VOLUME:-baseball-market-spring-uploads}"
 
   local sql_in="$in_dir/bb_market_data.sql"
   local tar_in="$in_dir/uploads.tar.gz"
 
-  log_info "import 開始（本番 DB コンテナ: $prod_container, volume: $uploads_volume）"
+  log_info "import 開始（本番 DB: $prod_container, app: $app_container）"
 
   [ -f "$sql_in" ] || { log_error "$sql_in が無い。export 出力を転送したか確認する。"; exit 1; }
   [ -f "$tar_in" ] || { log_error "$tar_in が無い。export 出力を転送したか確認する。"; exit 1; }
@@ -148,6 +151,10 @@ cmd_import() {
     if [ -f "$deploy_dir/.env" ]; then
       # .env の MYSQL_ROOT_PASSWORD のみ取り出す（他の変数で環境を汚さない）。
       MYSQL_ROOT_PASSWORD="$(grep -E '^MYSQL_ROOT_PASSWORD=' "$deploy_dir/.env" | head -1 | cut -d= -f2-)"
+      # .env が値をクォートで囲っている場合（docker compose は env_file の前後クォートを除去する）に
+      # 整合させ、クォート文字が混入して認証エラーになるのを防ぐ。前後の " と ' を除去する。
+      MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD%\"}"; MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD#\"}"
+      MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD%\'}"; MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD#\'}"
     fi
   fi
   if [ -z "${MYSQL_ROOT_PASSWORD:-}" ]; then
@@ -169,25 +176,42 @@ cmd_import() {
       echo "SET FOREIGN_KEY_CHECKS=0;"
       for t in "${TABLES[@]}"; do echo "TRUNCATE TABLE \`$t\`;"; done
       echo "SET FOREIGN_KEY_CHECKS=1;"
-    } | docker exec -i "$prod_container" sh -c "exec mysql -u root -p\"$MYSQL_ROOT_PASSWORD\" $DB_NAME"
+    } | MYSQL_PWD="$MYSQL_ROOT_PASSWORD" docker exec -i -e MYSQL_PWD "$prod_container" sh -c "exec mysql -u root $DB_NAME"
     log_success "TRUNCATE 完了"
   fi
 
   # --- 1. DB へ投入 ---
   log_info "本番 DB へデータ投入 ..."
-  docker exec -i "$prod_container" sh -c "exec mysql -u root -p\"$MYSQL_ROOT_PASSWORD\" $DB_NAME" < "$sql_in"
+  MYSQL_PWD="$MYSQL_ROOT_PASSWORD" docker exec -i -e MYSQL_PWD "$prod_container" sh -c "exec mysql -u root $DB_NAME" < "$sql_in"
   log_success "DB 投入完了"
 
   # --- 2. 画像を uploads volume 直下へ展開 ---
-  # app コンテナは非 root 実行のため、配信に必要な読み取り権限を a+rX で付与する。
-  log_info "画像を volume '$uploads_volume' 直下へ展開 ..."
-  docker run --rm \
-    -v "$uploads_volume":/uploads \
-    -v "$in_dir":/src:ro \
-    alpine sh -c 'cd /uploads && tar xzf /src/uploads.tar.gz && chmod -R a+rX .'
+  # named volume へはコンテナ経由でしか書けないが、オフライン/レジストリ制限環境を考慮し
+  # 新規イメージ（alpine 等）の pull を避ける。uploads volume を既にマウントしている稼働中の
+  # app コンテナへ host で展開した画像を docker cp で流し込む（追加 image 不要）。
+  # app は非 root 実行のため、配信に必要な読み取り権限を root で a+rX 付与する。
+  if ! docker ps --format '{{.Names}}' | grep -qx "$app_container"; then
+    log_error "app コンテナ '$app_container' が起動していない。先に deploy.sh で起動する。"
+    exit 1
+  fi
+  # 画像の配置先（volume のマウント先）。.env の APP_UPLOADS_PATH を優先し、無ければ既定値。
+  local app_uploads_path="${APP_UPLOADS_PATH:-}"
+  if [ -z "$app_uploads_path" ] && [ -f "$deploy_dir/.env" ]; then
+    app_uploads_path="$(grep -E '^APP_UPLOADS_PATH=' "$deploy_dir/.env" | head -1 | cut -d= -f2-)"
+    app_uploads_path="${app_uploads_path%\"}"; app_uploads_path="${app_uploads_path#\"}"
+    app_uploads_path="${app_uploads_path%\'}"; app_uploads_path="${app_uploads_path#\'}"
+  fi
+  app_uploads_path="${app_uploads_path:-/var/lib/baseball-market/uploads}"
+
+  log_info "画像を app コンテナ '$app_container' の $app_uploads_path 直下へ展開 ..."
+  local tmp; tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' RETURN
+  tar xzf "$tar_in" -C "$tmp"
+  docker cp "$tmp/." "$app_container:$app_uploads_path/"
+  docker exec -u root "$app_container" sh -c "chmod -R a+rX '$app_uploads_path'"
   local img_count
-  img_count="$(docker run --rm -v "$uploads_volume":/uploads alpine sh -c 'find /uploads -maxdepth 1 -type f | wc -l')"
-  log_success "画像展開完了（volume 直下のファイル数: $img_count）"
+  img_count="$(docker exec "$app_container" sh -c "find '$app_uploads_path' -maxdepth 1 -type f | wc -l")"
+  log_success "画像展開完了（uploads 直下のファイル数: $img_count）"
 
   echo
   log_success "移行完了。ブラウザで商品一覧・詳細・掲示板を開き、画像と掲示板メッセージが表示されることを確認する。"
