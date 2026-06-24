@@ -157,7 +157,7 @@ cmd_import() {
   # コンテナ内の実値を信頼することで、この解釈差に起因する認証失敗を構造的に無くす。
   # 既知の実パスワードを明示注入したい場合（例: stale volume で旧パスワードが残っている）に限り、
   # 環境変数 MYSQL_ROOT_PASSWORD を渡せばそちらを優先する。
-  if [ -z "${MYSQL_ROOT_PASSWORD:-}" ] && ! docker exec "$prod_container" printenv MYSQL_ROOT_PASSWORD >/dev/null 2>&1; then
+  if [ -z "${MYSQL_ROOT_PASSWORD:-}" ] && ! docker exec "$prod_container" sh -c '[ -n "${MYSQL_ROOT_PASSWORD:-}" ]' >/dev/null 2>&1; then
     log_error "DB コンテナ '$prod_container' に MYSQL_ROOT_PASSWORD が無い。compose の env_file / .env を確認するか、環境変数で渡す。"
     exit 1
   fi
@@ -168,11 +168,11 @@ cmd_import() {
     if [ -n "${MYSQL_ROOT_PASSWORD:-}" ]; then
       # host から明示注入された実パスワードを優先（コンテナ env の値とは別に上書きしたい場合）。
       MYSQL_PWD="$MYSQL_ROOT_PASSWORD" docker exec -i -e MYSQL_PWD "$prod_container" \
-        sh -c 'exec mysql -u root "$0"' "$DB_NAME"
+        sh -c 'exec mysql -u root "$1"' _ "$DB_NAME"
     else
       # 既定: コンテナ自身の MYSQL_ROOT_PASSWORD（＝DB 初期化時の実値）を使う。
       docker exec -i "$prod_container" \
-        sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -u root "$0"' "$DB_NAME"
+        sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -u root "$1"' _ "$DB_NAME"
     fi
   }
 
