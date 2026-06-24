@@ -146,26 +146,35 @@ cmd_import() {
   [ -f "$sql_in" ] || { log_error "$sql_in が無い。export 出力を転送したか確認する。"; exit 1; }
   [ -f "$tar_in" ] || { log_error "$tar_in が無い。export 出力を転送したか確認する。"; exit 1; }
 
-  # 本番 DB の root パスワードは デプロイ済み .env（PRODUCTION_ENV 由来）から取得する。
-  if [ -z "${MYSQL_ROOT_PASSWORD:-}" ]; then
-    if [ -f "$deploy_dir/.env" ]; then
-      # .env の MYSQL_ROOT_PASSWORD のみ取り出す（他の変数で環境を汚さない）。
-      MYSQL_ROOT_PASSWORD="$(grep -E '^MYSQL_ROOT_PASSWORD=' "$deploy_dir/.env" | head -1 | cut -d= -f2-)"
-      # .env が値をクォートで囲っている場合（docker compose は env_file の前後クォートを除去する）に
-      # 整合させ、クォート文字が混入して認証エラーになるのを防ぐ。前後の " と ' を除去する。
-      MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD%\"}"; MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD#\"}"
-      MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD%\'}"; MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD#\'}"
-    fi
-  fi
-  if [ -z "${MYSQL_ROOT_PASSWORD:-}" ]; then
-    log_error "MYSQL_ROOT_PASSWORD を取得できない。環境変数で渡すか $deploy_dir/.env を確認する。"
-    exit 1
-  fi
-
   if ! docker ps --format '{{.Names}}' | grep -qx "$prod_container"; then
     log_error "本番 DB コンテナ '$prod_container' が起動していない。先に deploy.sh で起動する。"
     exit 1
   fi
+
+  # 本番 DB への認証は「DB コンテナ自身が初期化時に使った」MYSQL_ROOT_PASSWORD をそのまま使う。
+  # host 側で .env を grep 再パースすると docker compose の env_file 解釈（前後クォート除去・CRLF・
+  # 空白の扱い）とズレ、値が食い違って 'Access denied ... (using password: YES)' を招く。
+  # コンテナ内の実値を信頼することで、この解釈差に起因する認証失敗を構造的に無くす。
+  # 既知の実パスワードを明示注入したい場合（例: stale volume で旧パスワードが残っている）に限り、
+  # 環境変数 MYSQL_ROOT_PASSWORD を渡せばそちらを優先する。
+  if [ -z "${MYSQL_ROOT_PASSWORD:-}" ] && ! docker exec "$prod_container" printenv MYSQL_ROOT_PASSWORD >/dev/null 2>&1; then
+    log_error "DB コンテナ '$prod_container' に MYSQL_ROOT_PASSWORD が無い。compose の env_file / .env を確認するか、環境変数で渡す。"
+    exit 1
+  fi
+
+  # 本番 DB コンテナ内で mysql を実行するヘルパ。MYSQL_PWD はコンテナ内シェルで設定するため
+  # host・コンテナ双方の argv（ps）に値が露出しない。引数なしで stdin から SQL を読む。
+  prod_db_mysql() {
+    if [ -n "${MYSQL_ROOT_PASSWORD:-}" ]; then
+      # host から明示注入された実パスワードを優先（コンテナ env の値とは別に上書きしたい場合）。
+      MYSQL_PWD="$MYSQL_ROOT_PASSWORD" docker exec -i -e MYSQL_PWD "$prod_container" \
+        sh -c 'exec mysql -u root "$0"' "$DB_NAME"
+    else
+      # 既定: コンテナ自身の MYSQL_ROOT_PASSWORD（＝DB 初期化時の実値）を使う。
+      docker exec -i "$prod_container" \
+        sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysql -u root "$0"' "$DB_NAME"
+    fi
+  }
 
   # --- 0.（任意）--fresh: 既存の本番データを TRUNCATE してから入れ直す ---
   if [ "$fresh" = "--fresh" ]; then
@@ -176,13 +185,13 @@ cmd_import() {
       echo "SET FOREIGN_KEY_CHECKS=0;"
       for t in "${TABLES[@]}"; do echo "TRUNCATE TABLE \`$t\`;"; done
       echo "SET FOREIGN_KEY_CHECKS=1;"
-    } | MYSQL_PWD="$MYSQL_ROOT_PASSWORD" docker exec -i -e MYSQL_PWD "$prod_container" sh -c "exec mysql -u root $DB_NAME"
+    } | prod_db_mysql
     log_success "TRUNCATE 完了"
   fi
 
   # --- 1. DB へ投入 ---
   log_info "本番 DB へデータ投入 ..."
-  MYSQL_PWD="$MYSQL_ROOT_PASSWORD" docker exec -i -e MYSQL_PWD "$prod_container" sh -c "exec mysql -u root $DB_NAME" < "$sql_in"
+  prod_db_mysql < "$sql_in"
   log_success "DB 投入完了"
 
   # --- 2. 画像を uploads volume 直下へ展開 ---
