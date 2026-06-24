@@ -93,7 +93,7 @@ INSERT INTO `makers` (`id`, `maker_name`, `delete_flg`, `created_at`, `updated_a
 
 -- --- products ---
 INSERT INTO `products` (`id`, `product_name`, `maker_id`, `category_id`, `user_id`, `product_comment`, `price`, `pic1`, `pic2`, `pic3`, `delete_flg`, `sold_out_flg`, `created_at`, `updated_at`) VALUES
-(55, '硬式用グローブ', 1, 1, 1, '中古品ですが美品です！', 5000, 'seed-images/0d81c59eb2e64222d1c141b13ccb721cc4f0d280.jpeg', 'seed-images/ca478b2d18f06be71fff43e8722ad07f39bd3d9f.png', '', 0, 0, '2020-04-23 23:22:27', '2025-12-27 12:25:42'),
+(55, '硬式用グローブ', 1, 1, 1, '中古品ですが美品です！', 5000, 'seed-images/0d81c59eb2e64222d1c141b13ccb721cc4f0d280.jpeg', '', '', 0, 0, '2020-04-23 23:22:27', '2025-12-27 12:25:42'),
 (74, '硬式用竹バット', 2, 3, 4, '使用感がありますが、まだまだ使えます！', 5000, 'seed-images/d37c1d3de3d21c9be567263ecb46a0ebd39b9bb6.jpeg', '', '', 0, 0, '2020-04-25 07:23:24', '2020-04-24 13:23:24'),
 (76, '【美品】硬式用バット', 9, 3, 4, 'ほぼ新品に近い状態です！\r\nノークレーム・ノーリターンでおねがいします。', 13000, 'seed-images/36af14c91dafb7977807bdd7d602a6dee161f939.jpeg', '', '', 0, 1, '2020-04-25 07:26:05', '2025-12-27 12:28:33'),
 (122, '【美品】硬式用バット', 9, 3, 4, 'ほぼ新品に近い状態です！\r\nノークレーム・ノーリターンでおねがいします。', 13000, 'seed-images/36af14c91dafb7977807bdd7d602a6dee161f939.jpeg', '', '', 0, 0, '2020-04-25 07:26:05', '2020-04-24 13:26:05'),
