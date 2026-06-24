@@ -56,10 +56,19 @@ fi
 
 ### 事前に PAT 単体を検証したい場合（Secret 配線と PAT 有効性の切り分け）
 
-self-hosted runner が動く本番サーバー上で直接ログインを試す:
+self-hosted runner が動く本番サーバー上で直接ログインを試す。**トークンを `echo` でコマンドに直書きするとシェル履歴（`~/.bash_history`）に平文で残る**ため、対話入力でログインする（Password プロンプトに再生成した PAT を貼り付ける）:
 
 ```bash
-echo "ghp_新しいトークン" | docker login ghcr.io -u shimanamisan --password-stdin
+docker login ghcr.io -u shimanamisan
+# Username: shimanamisan（入力済み）
+# Password: <再生成した PAT を貼り付け> ← 画面に表示されず履歴にも残らない
+```
+
+履歴に残さず非対話で行いたい場合は、`read -rs` で変数に読んでから `--password-stdin` に渡す:
+
+```bash
+read -rsp 'PAT: ' GHCR_PAT; echo
+echo "$GHCR_PAT" | docker login ghcr.io -u shimanamisan --password-stdin; unset GHCR_PAT
 ```
 
 - `Login Succeeded` → **PAT は有効**。残る原因は Secret 側（値ズレ・`GHCR_USERNAME` 未登録）。
