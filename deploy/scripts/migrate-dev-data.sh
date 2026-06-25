@@ -23,6 +23,9 @@
 #              data-only SQL ダンプと画像 bundle を出力する。
 #   import   … 本番サーバー（self-hosted runner と本番 DB コンテナがある環境）で実行。
 #              出力物を本番 DB へ投入し、画像を uploads volume へ展開する。
+#   import-images … 本番サーバーで実行。画像展開（step 2）のみを冪等に再実行する。
+#              DB は投入済みだが画像だけ抜けた／やり直したい場合に使う（フル import は
+#              DB が PK 重複で失敗するため、画像だけを安全に流し込む口）。
 #
 # 使い方:
 #   # 1) dev 機で
@@ -36,6 +39,8 @@
 #   bash deploy/scripts/migrate-dev-data.sh import ~/migration-in
 #   #   既存の本番データを消してから入れ直す場合のみ:
 #   bash deploy/scripts/migrate-dev-data.sh import ~/migration-in --fresh
+#   #   DB は投入済みで画像だけ展開し直す場合（冪等）:
+#   bash deploy/scripts/migrate-dev-data.sh import-images ~/migration-in
 ###############################################################################
 set -euo pipefail
 
@@ -63,6 +68,63 @@ TABLES=(
   messages
   likes
 )
+
+# ============================================================================
+# 共通ヘルパ
+# ============================================================================
+# app コンテナの uploads 配置先（volume マウント先）を解決して echo する。
+# 優先順: 環境変数 APP_UPLOADS_PATH → deploy/.env の APP_UPLOADS_PATH → 既定値。
+resolve_uploads_path() {
+  local deploy_dir="$1"
+  local p="${APP_UPLOADS_PATH:-}"
+  if [ -z "$p" ] && [ -f "$deploy_dir/.env" ]; then
+    p="$(grep -E '^APP_UPLOADS_PATH=' "$deploy_dir/.env" | head -1 | cut -d= -f2-)"
+    p="${p%\"}"; p="${p#\"}"; p="${p%\'}"; p="${p#\'}"
+  fi
+  echo "${p:-/var/lib/baseball-market/uploads}"
+}
+
+# 画像実体を稼働中 app コンテナの uploads volume 直下へ冪等に展開する（移行の step 2）。
+#   - named volume へはコンテナ経由でしか書けないが、オフライン/レジストリ制限環境を考慮し
+#     新規イメージ（alpine 等）の pull を避ける。uploads volume を既にマウントしている稼働中の
+#     app コンテナへ host で展開した画像を docker cp で流し込む（追加 image 不要）。
+#   - app は非 root 実行のため、配信に必要な読み取り権限を root で a+rX 付与する。
+#   - 同名ファイルは上書きされるため、何度実行しても同じ結果になる＝冪等。
+#     DB 投入済みで画像だけ抜けた場合に、フル import（PK 重複になる）を避けて単体再実行できる。
+# 展開後にファイル数を検証し、0 なら異常終了、bundle 未満なら警告する。
+deploy_images() {
+  local tar_in="$1"
+  local app_container="$2"
+  local deploy_dir="$3"
+
+  [ -f "$tar_in" ] || { log_error "$tar_in が無い。export 出力を転送したか確認する。"; exit 1; }
+  if ! docker ps --format '{{.Names}}' | grep -qx "$app_container"; then
+    log_error "app コンテナ '$app_container' が起動していない。先に deploy.sh で起動する。"
+    exit 1
+  fi
+
+  local app_uploads_path; app_uploads_path="$(resolve_uploads_path "$deploy_dir")"
+  log_info "画像を app コンテナ '$app_container' の $app_uploads_path 直下へ展開 ..."
+
+  local tmp; tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' RETURN
+  tar xzf "$tar_in" -C "$tmp"
+  local bundle_count; bundle_count="$(find "$tmp" -type f | wc -l)"
+  docker cp "$tmp/." "$app_container:$app_uploads_path/"
+  docker exec -u root "$app_container" sh -c "chmod -R a+rX '$app_uploads_path'"
+
+  local img_count
+  img_count="$(docker exec "$app_container" sh -c "find '$app_uploads_path' -maxdepth 1 -type f | wc -l")"
+  log_success "画像展開完了（bundle: $bundle_count ファイル / uploads 直下: $img_count ファイル）"
+
+  # --- 検証: 取りこぼしを検知する（今回の「DB だけ入って画像が抜けた」事象の再発防止） ---
+  if [ "$img_count" -eq 0 ]; then
+    log_error "uploads 直下のファイル数が 0。展開に失敗している可能性が高い。配置先パス・権限・tar 内容を確認する。"
+    exit 1
+  elif [ "$img_count" -lt "$bundle_count" ]; then
+    log_warning "uploads 直下($img_count) が bundle($bundle_count) より少ない。既存ファイルとの差分か、展開漏れの可能性がある。"
+  fi
+}
 
 # ============================================================================
 # export（dev 機で実行）
@@ -194,33 +256,8 @@ cmd_import() {
   prod_db_mysql < "$sql_in"
   log_success "DB 投入完了"
 
-  # --- 2. 画像を uploads volume 直下へ展開 ---
-  # named volume へはコンテナ経由でしか書けないが、オフライン/レジストリ制限環境を考慮し
-  # 新規イメージ（alpine 等）の pull を避ける。uploads volume を既にマウントしている稼働中の
-  # app コンテナへ host で展開した画像を docker cp で流し込む（追加 image 不要）。
-  # app は非 root 実行のため、配信に必要な読み取り権限を root で a+rX 付与する。
-  if ! docker ps --format '{{.Names}}' | grep -qx "$app_container"; then
-    log_error "app コンテナ '$app_container' が起動していない。先に deploy.sh で起動する。"
-    exit 1
-  fi
-  # 画像の配置先（volume のマウント先）。.env の APP_UPLOADS_PATH を優先し、無ければ既定値。
-  local app_uploads_path="${APP_UPLOADS_PATH:-}"
-  if [ -z "$app_uploads_path" ] && [ -f "$deploy_dir/.env" ]; then
-    app_uploads_path="$(grep -E '^APP_UPLOADS_PATH=' "$deploy_dir/.env" | head -1 | cut -d= -f2-)"
-    app_uploads_path="${app_uploads_path%\"}"; app_uploads_path="${app_uploads_path#\"}"
-    app_uploads_path="${app_uploads_path%\'}"; app_uploads_path="${app_uploads_path#\'}"
-  fi
-  app_uploads_path="${app_uploads_path:-/var/lib/baseball-market/uploads}"
-
-  log_info "画像を app コンテナ '$app_container' の $app_uploads_path 直下へ展開 ..."
-  local tmp; tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' RETURN
-  tar xzf "$tar_in" -C "$tmp"
-  docker cp "$tmp/." "$app_container:$app_uploads_path/"
-  docker exec -u root "$app_container" sh -c "chmod -R a+rX '$app_uploads_path'"
-  local img_count
-  img_count="$(docker exec "$app_container" sh -c "find '$app_uploads_path' -maxdepth 1 -type f | wc -l")"
-  log_success "画像展開完了（uploads 直下のファイル数: $img_count）"
+  # --- 2. 画像を uploads volume 直下へ展開（冪等。失敗/取りこぼし時は import-images で単体再実行可） ---
+  deploy_images "$tar_in" "$app_container" "$deploy_dir"
 
   echo
   log_success "移行完了。ブラウザで商品一覧・詳細・掲示板を開き、画像と掲示板メッセージが表示されることを確認する。"
@@ -228,15 +265,37 @@ cmd_import() {
 }
 
 # ============================================================================
+# import-images（本番サーバーで実行 / 画像展開のみ・冪等）
+# ============================================================================
+# DB は投入済みだが画像展開だけ抜けた／やり直したい場合に使う。フル import を再実行すると
+# DB が PK 重複で失敗するため、画像展開（step 2）だけを安全に再実行する口を分離している。
+cmd_import_images() {
+  local in_dir="${1:?使い方: import-images <入力ディレクトリ>}"
+  local app_container="${PROD_APP_CONTAINER:-baseball-market-spring-app}"
+  local deploy_dir="${DEPLOY_DIR:-$HOME/deploy/baseball-market-spring}"
+  local tar_in="$in_dir/uploads.tar.gz"
+
+  log_info "import-images 開始（画像展開のみ / app: $app_container）"
+  deploy_images "$tar_in" "$app_container" "$deploy_dir"
+
+  echo
+  log_success "画像展開のみ完了。ブラウザで商品一覧・詳細を開き、画像が表示されることを確認する。"
+  log_warning "公開URLが復旧後も 404 のままなら、リバースプロキシ（NPM）が古い 404 をキャッシュしている可能性。"
+  log_warning "  → public-cache（実体は /var/lib/nginx/cache/public）をパージして nginx -s reload する。"
+}
+
+# ============================================================================
 # エントリポイント
 # ============================================================================
 case "${1:-}" in
-  export) shift; cmd_export "$@" ;;
-  import) shift; cmd_import "$@" ;;
+  export)        shift; cmd_export "$@" ;;
+  import)        shift; cmd_import "$@" ;;
+  import-images) shift; cmd_import_images "$@" ;;
   *)
     echo "使い方:"
     echo "  $0 export [出力ディレクトリ]              # dev 機で実行（既定: ./migration-out）"
-    echo "  $0 import <入力ディレクトリ> [--fresh]      # 本番サーバーで実行"
+    echo "  $0 import <入力ディレクトリ> [--fresh]      # 本番サーバーで実行（DB＋画像）"
+    echo "  $0 import-images <入力ディレクトリ>         # 本番サーバーで実行（画像展開のみ・冪等）"
     exit 1
     ;;
 esac
