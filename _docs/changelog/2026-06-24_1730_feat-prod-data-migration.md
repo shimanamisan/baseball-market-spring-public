@@ -34,7 +34,7 @@
 
 ### `deploy/scripts/migrate-dev-data.sh`
 
-2 サブコマンド構成。
+2 サブコマンド構成（初版）。**※ その後 PR #81 で画像のみ冪等再実行する `import-images` を追加し 3 サブコマンド構成に拡張。詳細は `2026-06-26_1200_fix-migrate-import-idempotent.md` を参照。**
 
 - **`export`**（dev 機で実行）: dev DB を data-only でダンプし、`seed-images/`→`uploads/` 正規化＋ FK チェック無効ラッパーを付けて `bb_market_data.sql` を出力。画像を `uploads.tar.gz`（volume 直下用にフラット集約）として出力。既定の出力先は `./migration-out/`。
 - **`import`**（本番サーバーで実行）: ダンプを本番 DB コンテナへ投入し、画像を稼働中の app コンテナの `APP_UPLOADS_PATH` 直下へ `docker cp` で配置（`chmod -R a+rX` で配信に必要な読み取り権限を付与）。本番 root パスワードはデプロイ済み `.env` の `MYSQL_ROOT_PASSWORD` から取得。`--fresh` で対象テーブルを TRUNCATE してから入れ直し可能。

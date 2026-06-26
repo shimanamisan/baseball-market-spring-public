@@ -24,14 +24,24 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
     <div>
-      <div class="aspect-square bg-gray-100 rounded-xl overflow-hidden mb-2">
-        <img th:if="${product.pic1 != null and !#strings.isEmpty(product.pic1)}" th:src="@{'/' + ${product.pic1}}"
-             alt="" class="w-full h-full object-cover">
+      <div class="relative aspect-square bg-gray-100 rounded-xl overflow-hidden mb-2">
+        <th:block th:if="${product.pic1 != null and !#strings.isEmpty(product.pic1)}">
+          <img th:src="@{'/' + ${product.pic1}}"
+               alt="" aria-hidden="true"
+               class="absolute inset-0 w-full h-full object-cover blur-2xl scale-110">
+          <img th:src="@{'/' + ${product.pic1}}"
+               th:alt="${product.productName}" class="relative w-full h-full object-contain">
+        </th:block>
+        <div th:unless="${product.pic1 != null and !#strings.isEmpty(product.pic1)}"
+             class="flex items-center justify-center h-full text-gray-400">
+          <i class="ri-image-line text-5xl" aria-hidden="true"></i>
+        </div>
       </div>
       <div class="grid grid-cols-3 gap-2">
         <img th:each="pic : ${ {product.pic2, product.pic3} }"
              th:if="${pic != null and !#strings.isEmpty(pic)}"
-             th:src="@{'/' + ${pic}}" class="w-full aspect-square object-cover rounded">
+             th:src="@{'/' + ${pic}}" th:alt="|${product.productName} のサブ画像|"
+             class="w-full aspect-square object-contain bg-gray-100 rounded">
       </div>
     </div>
 
