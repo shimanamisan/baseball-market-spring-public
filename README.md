@@ -43,6 +43,17 @@
 
 実装は t-wada 流の TDD（Red → Green → Refactor）で進め、各ユースケースは振る舞い単位のテストで仕様を表現しています。
 
+## リポジトリ構成（private / public ミラー）
+
+本プロジェクトは本番デプロイを行う **private リポジトリを正（source of truth）** とし、`main` への push をトリガーに **公開ミラー（`baseball-market-spring-public`）** へ自動同期しています。
+
+本番は自宅サーバ上で Docker コンテナとして稼働しており、その更新を CI/CD（GitHub Actions）で自動化するために、自宅サーバを **self-hosted runner** として登録する構成を採っています。このデプロイ経路は自宅環境に直結するため、最小権限と運用情報の非公開の観点から、公開ミラーには以下を **含めていません**。
+
+- 本番デプロイ用ワークフロー（self-hosted runner 上で実行する private 専用構成）
+- ミラー同期用ワークフロー自身、および個人用ローカル設定
+
+そのため公開ミラー側では GitHub Actions（CI/CD）は実行されません。アプリ本体のソースコードと設計はそのまま閲覧できます。
+
 ## 前提: edge-proxy-stack（エッジゲートウェイ）
 
 このプロジェクトは、リバースプロキシ基盤として [shimanamisan/edge-proxy-stack](https://github.com/shimanamisan/edge-proxy-stack) を併用することを前提にしています。
