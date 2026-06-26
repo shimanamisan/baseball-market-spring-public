@@ -74,7 +74,7 @@
            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <a th:each="p : ${myPage.ownedProducts}" th:href="@{|/productDetail/${p.id}|}"
            class="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden group">
-          <div class="relative aspect-square w-full h-48 overflow-hidden bg-gray-100">
+          <div class="relative aspect-square w-full overflow-hidden bg-gray-100">
             <img th:if="${p.pic1 != null and !#strings.isEmpty(p.pic1)}" th:src="@{'/' + ${p.pic1}}"
                  th:alt="${p.productName}"
                  th:classappend="${p.soldOut} ? 'grayscale' : ''"
@@ -155,7 +155,7 @@
            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <a th:each="p : ${myPage.likedProducts}" th:href="@{|/productDetail/${p.id}|}"
            class="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200 overflow-hidden group">
-          <div class="relative aspect-square w-full h-48 overflow-hidden bg-gray-100">
+          <div class="relative aspect-square w-full overflow-hidden bg-gray-100">
             <img th:if="${p.pic1 != null and !#strings.isEmpty(p.pic1)}" th:src="@{'/' + ${p.pic1}}"
                  th:alt="${p.productName}"
                  th:classappend="${p.soldOut} ? 'grayscale' : ''"
