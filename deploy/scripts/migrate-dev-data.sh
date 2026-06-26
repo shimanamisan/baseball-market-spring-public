@@ -53,6 +53,20 @@ log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# 一時ディレクトリのクリーンアップ機構。
+# RETURN トラップは関数の戻り時のみ発火し、`set -e` での中断や `exit` 経路では発火しない。
+# そのため一時ディレクトリが残留しうる。プロセス終了時に確実に削除する EXIT トラップへ集約する。
+# 複数関数が個別に EXIT トラップを張ると後勝ちで上書き競合するため、配列に蓄積し単一トラップで一括削除する。
+_CLEANUP_DIRS=()
+_cleanup_tmpdirs() {
+  local d
+  for d in "${_CLEANUP_DIRS[@]:-}"; do
+    [ -n "$d" ] && rm -rf "$d"
+  done
+}
+trap _cleanup_tmpdirs EXIT
+register_tmpdir() { _CLEANUP_DIRS+=("$1"); }
+
 DB_NAME="${DB_NAME:-bb_market}"
 
 # FK 依存順（親 → 子）。import では FOREIGN_KEY_CHECKS=0 で囲むため順序に依存しないが、
@@ -78,7 +92,9 @@ resolve_uploads_path() {
   local deploy_dir="$1"
   local p="${APP_UPLOADS_PATH:-}"
   if [ -z "$p" ] && [ -f "$deploy_dir/.env" ]; then
-    p="$(grep -E '^APP_UPLOADS_PATH=' "$deploy_dir/.env" | head -1 | cut -d= -f2-)"
+    # 末尾の `|| true`: 現状の唯一の呼び出しはコマンド置換越し（errexit 非継承）のため
+    # マッチ無しでも落ちないが、将来 inherit_errexit 有効化や直接呼び出しに備えた防御。
+    p="$(grep -E '^APP_UPLOADS_PATH=' "$deploy_dir/.env" | head -1 | cut -d= -f2- || true)"
     p="${p%\"}"; p="${p#\"}"; p="${p%\'}"; p="${p#\'}"
   fi
   echo "${p:-/var/lib/baseball-market/uploads}"
@@ -107,7 +123,7 @@ deploy_images() {
   log_info "画像を app コンテナ '$app_container' の $app_uploads_path 直下へ展開 ..."
 
   local tmp; tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' RETURN
+  register_tmpdir "$tmp"
   tar xzf "$tar_in" -C "$tmp"
   local bundle_count; bundle_count="$(find "$tmp" -type f | wc -l)"
   docker cp "$tmp/." "$app_container:$app_uploads_path/"
@@ -167,7 +183,7 @@ cmd_export() {
 
   # --- 2. 画像実体を bundle。seed fixtures と runtime uploads を volume 直下用にフラット集約 ---
   local stage; stage="$(mktemp -d)"
-  trap 'rm -rf "$stage"' RETURN
+  register_tmpdir "$stage"
   local count=0
   if [ -d "$seed_images_dir" ]; then
     # .gitkeep 等の隠しメタは除外し、画像のみコピー
@@ -287,15 +303,18 @@ cmd_import_images() {
 # ============================================================================
 # エントリポイント
 # ============================================================================
-case "${1:-}" in
-  export)        shift; cmd_export "$@" ;;
-  import)        shift; cmd_import "$@" ;;
-  import-images) shift; cmd_import_images "$@" ;;
-  *)
-    echo "使い方:"
-    echo "  $0 export [出力ディレクトリ]              # dev 機で実行（既定: ./migration-out）"
-    echo "  $0 import <入力ディレクトリ> [--fresh]      # 本番サーバーで実行（DB＋画像）"
-    echo "  $0 import-images <入力ディレクトリ>         # 本番サーバーで実行（画像展開のみ・冪等）"
-    exit 1
-    ;;
-esac
+# source されたとき（テスト）はディスパッチせず、関数定義だけを提供する。
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  case "${1:-}" in
+    export)        shift; cmd_export "$@" ;;
+    import)        shift; cmd_import "$@" ;;
+    import-images) shift; cmd_import_images "$@" ;;
+    *)
+      echo "使い方:"
+      echo "  $0 export [出力ディレクトリ]              # dev 機で実行（既定: ./migration-out）"
+      echo "  $0 import <入力ディレクトリ> [--fresh]      # 本番サーバーで実行（DB＋画像）"
+      echo "  $0 import-images <入力ディレクトリ>         # 本番サーバーで実行（画像展開のみ・冪等）"
+      exit 1
+      ;;
+  esac
+fi
