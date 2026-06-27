@@ -4,7 +4,7 @@
 
 もともと PHP（DDD レイヤード構成）で作っていたアプリを、Spring Boot で一から作り直したものです。同じドメインを別のスタックで設計し直すことで、レイヤー分割や依存方向の引き方をあらためて整理する題材として取り組みました。
 
-![トップページ](_docs/screenshot-top.png)
+<img width="1450" height="686" alt="トップページ" src="https://github.com/user-attachments/assets/f7cda1bc-8b13-40fb-ad6a-44c8a438d4fc" />
 
 ## 主な機能
 
@@ -42,6 +42,17 @@
 依存方向は `presentation → application → domain ← infrastructure` の一方向に固定し、ドメイン層にはフレームワーク由来のアノテーションを持ち込まない方針です。トランザクション境界は application 層に限定し、Controller は薄く保っています。
 
 実装は t-wada 流の TDD（Red → Green → Refactor）で進め、各ユースケースは振る舞い単位のテストで仕様を表現しています。
+
+## リポジトリ構成（private / public ミラー）
+
+本プロジェクトは本番デプロイを行う **private リポジトリを正（source of truth）** とし、`main` への push をトリガーに **公開ミラー（`baseball-market-spring-public`）** へ自動同期しています。
+
+本番は自宅サーバ上で Docker コンテナとして稼働しており、その更新を CI/CD（GitHub Actions）で自動化するために、自宅サーバを **self-hosted runner** として登録する構成を採っています。このデプロイ経路は自宅環境に直結するため、最小権限と運用情報の非公開の観点から、公開ミラーには以下を **含めていません**。
+
+- 本番デプロイ用ワークフロー（self-hosted runner 上で実行する private 専用構成）
+- ミラー同期用ワークフロー自身、および個人用ローカル設定
+
+そのため公開ミラー側では GitHub Actions（CI/CD）は実行されません。アプリ本体のソースコードと設計はそのまま閲覧できます。
 
 ## 前提: edge-proxy-stack（エッジゲートウェイ）
 
@@ -103,3 +114,34 @@ Dev Container を前提にしています。
 ```
 
 DB スキーマは Flyway（`app/src/main/resources/db/migration/`）で管理しています。
+
+## 本番環境の DB 管理（phpMyAdmin）
+
+本番スタックには DB 管理 GUI（phpMyAdmin）を任意サービスとして同梱しています。
+`profile: tools` のため通常のデプロイでは起動せず、**必要時のみ手動で起動**します。
+公開範囲は `.env` の `PMA_BIND_IP` で制御し、**指定した IP のインターフェースにのみ
+バインド**します（外部 IF には出さないため、ルータでポート転送しない限り外部からは到達しません）。
+
+自宅 LAN（例: `192.168.10.0/24`）から直接アクセスする場合:
+
+```bash
+cd ~/deploy/baseball-market-spring
+# .env にサーバの LAN IP を設定（例。実値に置き換える）
+echo 'PMA_BIND_IP=192.168.10.5' >> .env
+
+# 起動（profile tools）
+docker compose --profile tools up -d phpmyadmin
+# → LAN 内の PC のブラウザから http://192.168.10.5:8091
+#   ログイン: bbuser（DB_USERNAME/DB_PASSWORD）または root（MYSQL_ROOT_PASSWORD）
+
+# 使い終わったら停止
+docker compose --profile tools stop phpmyadmin
+```
+
+- `PMA_BIND_IP` 未設定時は `127.0.0.1` にフォールバック（fail-safe）。その場合は
+  SSH トンネル（`ssh -L 8091:localhost:8091 <server>`）で `http://localhost:8091`。
+- **⚠ 8091 は平文 HTTP（TLS なし）**。LAN 内であってもログイン時の DB 認証情報は
+  暗号化されずに流れるため、信頼度の低い LAN や機密性の高い操作では SSH トンネル
+  （暗号化）経由を推奨。恒久的な HTTPS 化は別途検討（Issue #91）。
+- 開発環境（devcontainer）でも同方式で起動できます（`.devcontainer/docker-compose.yml`）。
+- 詳細は [deploy/prod/README.md](deploy/prod/README.md) を参照。

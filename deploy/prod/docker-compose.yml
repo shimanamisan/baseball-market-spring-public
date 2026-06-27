@@ -75,8 +75,18 @@ services:
 
   # DB 管理 GUI（任意・必要時のみ起動）。
   #   起動: docker compose --profile tools up -d phpmyadmin
-  # localhost のみにバインドし外部公開しない。手元からは SSH トンネル経由でアクセスする:
-  #   ssh -L 8091:localhost:8091 <server>  → ブラウザで http://localhost:8091
+  #
+  # 公開範囲は .env の PMA_BIND_IP で制御する（特定 IP にのみバインドし、それ以外の
+  # インターフェースには一切出さない）。Docker のポート公開はホストの ufw を貫通するため、
+  # 「外部 IF にバインドしない」ことで外部到達を構造的に遮断する方式を採る。
+  #   - 自宅 LAN(192.168.10.0/24)から見る場合: PMA_BIND_IP=<サーバの LAN IP 192.168.10.x>
+  #     → LAN 内の任意の PC から http://<サーバの LAN IP>:8091
+  #   - 未設定なら 127.0.0.1 にフォールバック（fail-safe）。設定忘れでも全 IF に晒さない。
+  #     その場合は手元から SSH トンネル: ssh -L 8091:localhost:8091 <server>
+  #
+  # ⚠ 注意: 8091 は平文 HTTP（TLS なし）。LAN 内であってもログイン時の DB 認証情報
+  #   （root / bbuser のパスワード）は暗号化されずに流れる。信頼度の低い LAN や機密性の
+  #   高い操作では SSH トンネル（暗号化）経由を推奨。恒久 HTTPS 化は別途検討（Issue #91）。
   phpmyadmin:
     image: phpmyadmin:5.2-apache
     container_name: baseball-market-spring-phpmyadmin
@@ -88,7 +98,8 @@ services:
       PMA_HOST: baseball-market-spring-db
       PMA_PORT: 3306
     ports:
-      - "127.0.0.1:8091:80"
+      # PMA_BIND_IP 未設定時は 127.0.0.1（SSH トンネル前提）に安全側フォールバック。
+      - "${PMA_BIND_IP:-127.0.0.1}:8091:80"
     depends_on:
       db:
         condition: service_healthy
