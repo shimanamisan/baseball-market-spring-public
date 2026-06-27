@@ -114,3 +114,31 @@ Dev Container を前提にしています。
 ```
 
 DB スキーマは Flyway（`app/src/main/resources/db/migration/`）で管理しています。
+
+## 本番環境の DB 管理（phpMyAdmin）
+
+本番スタックには DB 管理 GUI（phpMyAdmin）を任意サービスとして同梱しています。
+`profile: tools` のため通常のデプロイでは起動せず、**必要時のみ手動で起動**します。
+公開範囲は `.env` の `PMA_BIND_IP` で制御し、**指定した IP のインターフェースにのみ
+バインド**します（外部 IF には出さないため、ルータでポート転送しない限り外部からは到達しません）。
+
+自宅 LAN（例: `192.168.10.0/24`）から直接アクセスする場合:
+
+```bash
+cd ~/deploy/baseball-market-spring
+# .env にサーバの LAN IP を設定（例。実値に置き換える）
+echo 'PMA_BIND_IP=192.168.10.5' >> .env
+
+# 起動（profile tools）
+docker compose --profile tools up -d phpmyadmin
+# → LAN 内の PC のブラウザから http://192.168.10.5:8091
+#   ログイン: bbuser（DB_USERNAME/DB_PASSWORD）または root（MYSQL_ROOT_PASSWORD）
+
+# 使い終わったら停止
+docker compose --profile tools stop phpmyadmin
+```
+
+- `PMA_BIND_IP` 未設定時は `127.0.0.1` にフォールバック（fail-safe）。その場合は
+  SSH トンネル（`ssh -L 8091:localhost:8091 <server>`）で `http://localhost:8091`。
+- 開発環境（devcontainer）でも同方式で起動できます（`.devcontainer/docker-compose.yml`）。
+- 詳細は [deploy/prod/README.md](deploy/prod/README.md) を参照。

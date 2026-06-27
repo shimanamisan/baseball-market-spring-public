@@ -19,7 +19,7 @@ deploy/
 | --- | --- | --- |
 | `app` | Spring Boot（内蔵 Tomcat:8080、非 root 実行） | NPM 経由のみ（`expose: 8080`） |
 | `db` | MySQL 8.0 | 内部ネットワークのみ（外部非公開） |
-| `phpmyadmin` | DB 管理 GUI（任意・`profile: tools`） | `127.0.0.1:8091`（SSH トンネル前提） |
+| `phpmyadmin` | DB 管理 GUI（任意・`profile: tools`） | `${PMA_BIND_IP}:8091`（既定 `127.0.0.1`。LAN 公開は下記） |
 
 - スキーマは **Flyway がアプリ起動時に自動適用**する（手動マイグレーション不要）。
 - `app` の healthcheck（`/actuator/health`）は DB 健全性＝マイグレーション完了を含むため、
@@ -94,15 +94,31 @@ docker compose restart app          # 再起動
 
 ### phpMyAdmin（必要時のみ）
 
-外部公開しないため、手元から SSH トンネルでアクセスする。
+公開範囲は `.env` の `PMA_BIND_IP` で制御する。指定した IP のインターフェースにのみ
+バインドし、それ以外には一切出さない（Docker のポート公開は ufw を貫通するため、
+「外部 IF にバインドしない」ことで外部到達を構造的に遮断する）。
+
+**自宅 LAN（192.168.10.0/24）から直接アクセスする場合**（推奨運用）:
 
 ```bash
-# サーバー側で起動
+# .env にサーバの LAN IP を設定（例）
+#   PMA_BIND_IP=192.168.10.5
 docker compose --profile tools up -d phpmyadmin
-# 手元から
-ssh -L 8091:localhost:8091 <server>   # → ブラウザで http://localhost:8091
+# → LAN 内の任意の PC のブラウザから http://192.168.10.5:8091
 # 終了したら停止
 docker compose --profile tools stop phpmyadmin
+```
+
+- `PMA_BIND_IP` はサーバが LAN セグメント上に持つ IP を指定する。外部 IF には
+  バインドしないため、ルータでポート転送しない限り LAN 外からは到達しない。
+- ログインはアプリ用 `bbuser`（`DB_USERNAME`/`DB_PASSWORD`）または `root`
+  （`MYSQL_ROOT_PASSWORD`）を使う。
+
+**`PMA_BIND_IP` 未設定時**は `127.0.0.1` にフォールバック（fail-safe）。
+その場合は従来どおり SSH トンネルでアクセスする:
+
+```bash
+ssh -L 8091:localhost:8091 <server>   # → ブラウザで http://localhost:8091
 ```
 
 ### バックアップ

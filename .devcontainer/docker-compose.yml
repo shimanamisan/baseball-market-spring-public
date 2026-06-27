@@ -50,3 +50,30 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     networks:
       - nginx-proxy-manager-network
+
+  # DB 管理 GUI（任意・必要時のみ起動）。本番 deploy/prod と同方式。
+  #   起動: docker compose --profile tools up -d phpmyadmin
+  # profile: tools のため devcontainer の通常起動では立ち上がらない。
+  #
+  # 公開範囲は PMA_BIND_IP で制御する（指定 IP のインターフェースにのみバインド）。
+  #   - 自宅 LAN(192.168.10.0/24)から見る場合: PMA_BIND_IP に開発マシンの LAN IP を渡す。
+  #       例) PMA_BIND_IP=192.168.10.5 docker compose --profile tools up -d phpmyadmin
+  #       （または .devcontainer/.env に PMA_BIND_IP=192.168.10.5 を記述）
+  #       → LAN 内の PC から http://192.168.10.5:8091
+  #   - 未設定なら 127.0.0.1 にフォールバック（fail-safe）。手元からは http://localhost:8091
+  # ログインは bbuser / password、または root / rootpassword（上の db 設定値）。
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: baseball-market-spring-phpmyadmin
+    profiles:
+      - tools
+    environment:
+      PMA_HOST: baseball-market-spring-db
+      PMA_PORT: 3306
+    ports:
+      # PMA_BIND_IP 未設定時は 127.0.0.1 に安全側フォールバック。
+      - "${PMA_BIND_IP:-127.0.0.1}:8091:80"
+    depends_on:
+      - db
+    networks:
+      - nginx-proxy-manager-network
