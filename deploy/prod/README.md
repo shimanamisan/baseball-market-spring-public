@@ -19,7 +19,7 @@ deploy/
 | --- | --- | --- |
 | `app` | Spring Boot（内蔵 Tomcat:8080、非 root 実行） | NPM 経由のみ（`expose: 8080`） |
 | `db` | MySQL 8.0 | 内部ネットワークのみ（外部非公開） |
-| `phpmyadmin` | DB 管理 GUI（任意・`profile: tools`） | `${PMA_BIND_IP}:8091`（既定 `127.0.0.1`。LAN 公開は下記） |
+| `phpmyadmin` | DB 管理 GUI（任意・`profile: tools`） | `${PMA_BIND_IP}:${PMA_HTTP_PORT}`（既定 `127.0.0.1:8091`。LAN 公開は下記） |
 
 - スキーマは **Flyway がアプリ起動時に自動適用**する（手動マイグレーション不要）。
 - `app` の healthcheck（`/actuator/health`）は DB 健全性＝マイグレーション完了を含むため、
@@ -111,6 +111,10 @@ docker compose --profile tools stop phpmyadmin
 
 - `PMA_BIND_IP` はサーバが LAN セグメント上に持つ IP を指定する。外部 IF には
   バインドしないため、ルータでポート転送しない限り LAN 外からは到達しない。
+- **ホスト側ポートは既定 8091**。同一ホストで別の phpMyAdmin が 8091 を占有している
+  場合（例: `0.0.0.0:8091` を握る別プロジェクト）は衝突して到達できないため、
+  `.env` に `PMA_HTTP_PORT=8092` のように空きポートを設定する
+  （→ `http://<PMA_BIND_IP>:8092`）。
 - ログインはアプリ用 `bbuser`（`DB_USERNAME`/`DB_PASSWORD`）または `root`
   （`MYSQL_ROOT_PASSWORD`）を使う。
 - **⚠ 8091 は平文 HTTP（TLS なし）**。LAN 内であってもログイン時の DB 認証情報は
