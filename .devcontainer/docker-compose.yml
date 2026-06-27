@@ -62,6 +62,8 @@ services:
   #       → LAN 内の PC から http://192.168.10.5:8091
   #   - 未設定なら 127.0.0.1 にフォールバック（fail-safe）。手元からは http://localhost:8091
   # ログインは bbuser / password、または root / rootpassword（上の db 設定値）。
+  # ⚠ 8091 は平文 HTTP（TLS なし）。LAN 公開時は認証情報が暗号化されずに流れる点に留意
+  #   （dev は開発用の固定資格情報。本番の注意は deploy/prod 側 / Issue #91 を参照）。
   phpmyadmin:
     image: phpmyadmin:5.2-apache
     container_name: baseball-market-spring-phpmyadmin

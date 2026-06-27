@@ -113,6 +113,9 @@ docker compose --profile tools stop phpmyadmin
   バインドしないため、ルータでポート転送しない限り LAN 外からは到達しない。
 - ログインはアプリ用 `bbuser`（`DB_USERNAME`/`DB_PASSWORD`）または `root`
   （`MYSQL_ROOT_PASSWORD`）を使う。
+- **⚠ 8091 は平文 HTTP（TLS なし）**。LAN 内であってもログイン時の DB 認証情報は
+  暗号化されずに流れる。信頼度の低い LAN や機密性の高い操作では、下記の SSH トンネル
+  （暗号化）経由を推奨する。恒久的な HTTPS 化（NPM 経由）は別途検討（Issue #91）。
 
 **`PMA_BIND_IP` 未設定時**は `127.0.0.1` にフォールバック（fail-safe）。
 その場合は従来どおり SSH トンネルでアクセスする:

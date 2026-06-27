@@ -83,6 +83,10 @@ services:
   #     → LAN 内の任意の PC から http://<サーバの LAN IP>:8091
   #   - 未設定なら 127.0.0.1 にフォールバック（fail-safe）。設定忘れでも全 IF に晒さない。
   #     その場合は手元から SSH トンネル: ssh -L 8091:localhost:8091 <server>
+  #
+  # ⚠ 注意: 8091 は平文 HTTP（TLS なし）。LAN 内であってもログイン時の DB 認証情報
+  #   （root / bbuser のパスワード）は暗号化されずに流れる。信頼度の低い LAN や機密性の
+  #   高い操作では SSH トンネル（暗号化）経由を推奨。恒久 HTTPS 化は別途検討（Issue #91）。
   phpmyadmin:
     image: phpmyadmin:5.2-apache
     container_name: baseball-market-spring-phpmyadmin

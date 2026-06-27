@@ -140,5 +140,8 @@ docker compose --profile tools stop phpmyadmin
 
 - `PMA_BIND_IP` 未設定時は `127.0.0.1` にフォールバック（fail-safe）。その場合は
   SSH トンネル（`ssh -L 8091:localhost:8091 <server>`）で `http://localhost:8091`。
+- **⚠ 8091 は平文 HTTP（TLS なし）**。LAN 内であってもログイン時の DB 認証情報は
+  暗号化されずに流れるため、信頼度の低い LAN や機密性の高い操作では SSH トンネル
+  （暗号化）経由を推奨。恒久的な HTTPS 化は別途検討（Issue #91）。
 - 開発環境（devcontainer）でも同方式で起動できます（`.devcontainer/docker-compose.yml`）。
 - 詳細は [deploy/prod/README.md](deploy/prod/README.md) を参照。
