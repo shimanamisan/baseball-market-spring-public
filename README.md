@@ -4,7 +4,7 @@
 
 もともと PHP（DDD レイヤード構成）で作っていたアプリを、Spring Boot で一から作り直したものです。同じドメインを別のスタックで設計し直すことで、レイヤー分割や依存方向の引き方をあらためて整理する題材として取り組みました。
 
-![トップページ](_docs/screenshot-top.png)
+<img width="1450" height="686" alt="トップページ" src="https://github.com/user-attachments/assets/f7cda1bc-8b13-40fb-ad6a-44c8a438d4fc" />
 
 ## 主な機能
 
