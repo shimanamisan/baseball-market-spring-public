@@ -45,3 +45,4 @@ app/src/main/resources/static/uploads/*
 # 匿名化済みとはいえ DB ダンプ・画像 bundle を含むため追跡しない。
 migration-out/
 migration-in/
+*.local
