@@ -80,9 +80,13 @@ services:
   # インターフェースには一切出さない）。Docker のポート公開はホストの ufw を貫通するため、
   # 「外部 IF にバインドしない」ことで外部到達を構造的に遮断する方式を採る。
   #   - 自宅 LAN(192.168.10.0/24)から見る場合: PMA_BIND_IP=<サーバの LAN IP 192.168.10.x>
-  #     → LAN 内の任意の PC から http://<サーバの LAN IP>:8091
+  #     → LAN 内の任意の PC から http://<サーバの LAN IP>:<PMA_HTTP_PORT>
   #   - 未設定なら 127.0.0.1 にフォールバック（fail-safe）。設定忘れでも全 IF に晒さない。
-  #     その場合は手元から SSH トンネル: ssh -L 8091:localhost:8091 <server>
+  #     その場合は手元から SSH トンネル: ssh -L 8091:localhost:<PMA_HTTP_PORT> <server>
+  #
+  # ホスト側ポートは PMA_HTTP_PORT で可変（既定 8091）。同一ホストで別の phpMyAdmin が
+  # 8091 を占有している場合（例: 0.0.0.0:8091 を握る別プロジェクト）は衝突するため、
+  # 空きポートを指定する（例: PMA_HTTP_PORT=8092）。
   #
   # ⚠ 注意: 8091 は平文 HTTP（TLS なし）。LAN 内であってもログイン時の DB 認証情報
   #   （root / bbuser のパスワード）は暗号化されずに流れる。信頼度の低い LAN や機密性の
@@ -99,7 +103,8 @@ services:
       PMA_PORT: 3306
     ports:
       # PMA_BIND_IP 未設定時は 127.0.0.1（SSH トンネル前提）に安全側フォールバック。
-      - "${PMA_BIND_IP:-127.0.0.1}:8091:80"
+      # ホスト側ポートは PMA_HTTP_PORT で可変（既定 8091）。
+      - "${PMA_BIND_IP:-127.0.0.1}:${PMA_HTTP_PORT:-8091}:80"
     depends_on:
       db:
         condition: service_healthy
