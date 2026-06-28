@@ -11,6 +11,11 @@ networks:
   internal:
     driver: bridge
     internal: true
+  # phpMyAdmin のホストポート公開用。internal 網はホスト経路を持たず ports: が
+  # 黙って無視される（公開が成立しない）ため、公開には通常ブリッジ網が別途必要。
+  # db はこの網に参加しないため隔離は維持される。
+  pma-public:
+    driver: bridge
 
 volumes:
   db-store:
@@ -110,4 +115,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
+      # internal: db へ到達するため。pma-public: ホストへポート公開するため
+      # （internal だけだと ports: が成立しない）。
       - internal
+      - pma-public
