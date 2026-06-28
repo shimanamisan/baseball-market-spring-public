@@ -130,8 +130,9 @@ curl -sS -o /dev/null -w '%{http_code}\n' http://192.168.10.6:8092/
 | 項目 | 結果 |
 | --- | --- |
 | 本番 compose の YAML 構文・network/port 配線（`db` は `internal` のみ、`phpmyadmin` は `internal`+`pma-public`） | OK（PyYAML パース確認） |
-| サーバでの 8092 LISTEN・`curl` 到達・LAN ブラウザ到達 | override 検証 / 恒久デプロイ後に実施予定 |
-| `db` が引き続き `internal` 専用で外部非公開（隔離維持） | OK（compose 上で確認。`pma-public` 不参加） |
+| サーバでの 8092 公開（override 検証） | **OK**。`docker ps` の PORTS に `192.168.10.6:8092->80/tcp` が出現し公開成立を確認（`internal` 単独では出なかったものが `pma-public` 追加で出た＝原因確定） |
+| `db` が引き続き `internal` 専用で外部非公開（隔離維持） | **OK**。`docker ps` で `baseball-market-spring-db` の PORTS が空のまま（`pma-public` 不参加） |
+| 恒久 compose デプロイ後の同等動作 | 反映後に実施予定（override と同一構成のため同結果を見込む） |
 
 ## 関連
 
